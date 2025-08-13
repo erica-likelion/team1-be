@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 @NoArgsConstructor
@@ -26,6 +27,6 @@ public class Prescription {
 
     @PrePersist
     void onCreate() {
-        this.createdAt = LocalDate.now();
+        this.createdAt = LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 }
