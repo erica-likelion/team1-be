@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: medimate
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}   # 본인 계정으로 입력!
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  sql:
+    init:
+      mode: always
+  jpa:
+    defer-datasource-initialization: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+    show-sql: true
+    properties:
+      hibernate:
+        jdbc.time_zone: Asia/Seoul
+        format_sql: true
