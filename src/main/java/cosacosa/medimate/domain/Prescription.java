@@ -15,11 +15,17 @@ public class Prescription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String content = ""; // AI가 생성한 처방전 설명 글 (사용자 설정 언어)
 
+    @Column(columnDefinition = "TEXT")
     private String koreanContent = ""; // AI가 생성한 처방전 설명 글 (한국어)
 
     private LocalDate createdAt;
+
+    private String images = "";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false, name = "user_id")
@@ -28,5 +34,12 @@ public class Prescription {
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDate.now(ZoneId.of("Asia/Seoul"));
+    }
+
+    public Prescription(String title, String content, String koreanContent, User user) {
+        this.title = title;
+        this.content = content;
+        this.koreanContent = koreanContent;
+        this.user = user;
     }
 }
