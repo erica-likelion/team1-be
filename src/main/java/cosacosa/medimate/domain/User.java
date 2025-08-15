@@ -1,26 +1,23 @@
 package cosacosa.medimate.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "user")
-@Getter @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;                 // 닉네임
+    @Column(nullable = false)
+    private String name;
 
     @Column(nullable = false)
-    private String password;             // 비밀번호
+    private String password;
 
     @Column(nullable = false)
-    private String prescriptionHistory;  // 처방 히스토리
+    private String prescriptionHistory = "";
 }
