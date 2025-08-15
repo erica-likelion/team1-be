@@ -1,10 +1,12 @@
 package cosacosa.medimate.service;
 
 import cosacosa.medimate.domain.Precheck;
-import cosacosa.medimate.dto.PrecheckRequest;
-import cosacosa.medimate.dto.PrecheckResponse;
-import cosacosa.medimate.dto.PrecheckListItemResponse;
+import cosacosa.medimate.domain.User;
+import cosacosa.medimate.dto.PrecheckListItemResponseDto;
+import cosacosa.medimate.dto.PrecheckRequestDto;
+import cosacosa.medimate.dto.PrecheckResponseDto;
 import cosacosa.medimate.repository.PrecheckRepository;
+import cosacosa.medimate.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,20 +19,29 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PrecheckService {
     private final PrecheckRepository repository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public Precheck save(PrecheckRequest req) {
+    public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResult ai) {
+        if (req.getUserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required.");
+        }
+        User user = userRepository.findById(req.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Invalid userId: " + req.getUserId()));
+
         Precheck entity = Precheck.builder()
-                .title(null)                         // AI가 나중에 채움
-                .content(null)                       // AI가 나중에 채움
+                .title(nullToEmpty(ai.title()))
+                .content(nullToEmpty(ai.content()))
                 .name(nullToEmpty(req.getName()))
-                .age(req.getAge() == null ? 0 : req.getAge())
+                .age(req.getAge())
                 .nationality(nullToEmpty(req.getNationality()))
                 .gender(nullToEmpty(req.getGender()))
-                .description(nullToEmpty(req.getDescription())) // 원문 저장
-                .userId(req.getUserId())
+                .description(nullToEmpty(req.getDescription()))
+                .user(user)
                 .build();
-        return repository.save(entity); // createdAt은 @PrePersist로 자동 세팅
+
+        return repository.save(entity);
     }
 
     public Precheck get(Long id) {
@@ -38,13 +49,9 @@ public class PrecheckService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Precheck not found: " + id));
     }
 
-    public List<Precheck> findByUser(Long userId) {
-        return repository.findByUserIdOrderByIdDesc(userId);
-    }
-
-    public List<PrecheckListItemResponse> list() {
-        return repository.findAllByOrderByIdAsc().stream()
-                .map(p -> PrecheckListItemResponse.builder()
+    public List<PrecheckListItemResponseDto> list() {
+        return repository.findAllByOrderByIdDesc().stream()
+                .map(p -> PrecheckListItemResponseDto.builder()
                         .id(p.getId())
                         .title(p.getTitle())
                         .createdAt(p.getCreatedAt())
@@ -52,9 +59,8 @@ public class PrecheckService {
                 .toList();
     }
 
-    public PrecheckResponse toResponse(Precheck p) {
-        if (p == null) return null;
-        return PrecheckResponse.builder()
+    public PrecheckResponseDto toCreateResponse(Precheck p) {
+        return PrecheckResponseDto.builder()
                 .id(p.getId())
                 .title(p.getTitle())
                 .content(p.getContent())
@@ -64,12 +70,11 @@ public class PrecheckService {
                 .nationality(p.getNationality())
                 .gender(p.getGender())
                 .description(p.getDescription())
-                .userId(p.getUserId())
                 .build();
     }
 
-    public List<PrecheckResponse> toResponseList(List<Precheck> list) {
-        return list.stream().map(this::toResponse).toList();
+    public PrecheckResponseDto toDetailResponse(Precheck p) {
+        return toCreateResponse(p);
     }
 
     private String nullToEmpty(String s) { return s == null ? "" : s; }

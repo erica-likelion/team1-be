@@ -1,55 +1,45 @@
 package cosacosa.medimate.controller;
 
 import cosacosa.medimate.domain.Precheck;
-import cosacosa.medimate.dto.PrecheckRequest;
-import cosacosa.medimate.dto.PrecheckResponse;
-import cosacosa.medimate.dto.PrecheckListItemResponse; // 추가: 리스트 전용 DTO
+import cosacosa.medimate.dto.PrecheckRequestDto;
+import cosacosa.medimate.dto.PrecheckResponseDto;
+import cosacosa.medimate.dto.PrecheckListItemResponseDto;
+import cosacosa.medimate.service.AiPrecheckService;
 import cosacosa.medimate.service.PrecheckService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/precheck")
 public class PrecheckController {
-
     private final PrecheckService service;
+    private final AiPrecheckService aiService;
 
     // POST /api/precheck
-    // 201 Created
-    @PostMapping
-    public ResponseEntity<PrecheckResponse> create(@RequestBody PrecheckRequest req) {
-        Precheck saved = service.save(req);
-        PrecheckResponse resp = service.toResponse(saved);
-        return ResponseEntity
-                .created(URI.create("/api/precheck/" + saved.getId()))
-                .body(resp);
+    // 저장된 번역 내용 반환
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PrecheckResponseDto> create(@RequestBody PrecheckRequestDto req) {
+        AiPrecheckService.AiResult ai = aiService.generateTitleAndContent(req);
+        Precheck saved = service.saveWithAi(req, ai);
+        return ResponseEntity.ok(service.toCreateResponse(saved));
     }
 
     // GET /api/precheck
-    // 200 OK
-    @GetMapping
-    public ResponseEntity<List<PrecheckListItemResponse>> list() {
-        return ResponseEntity.ok(service.list()); // service에서 최소 필드 DTO로 매핑
+    // 사전문진 데이터 전체 조회
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PrecheckListItemResponseDto>> list() {
+        return ResponseEntity.ok(service.list());
     }
 
-    // GET /api/precheck/{id}
-    // 200 OK
-    @GetMapping("/{id}")
-    public ResponseEntity<PrecheckResponse> get(@PathVariable Long id) {
-        Precheck precheck = service.get(id);
-        return ResponseEntity.ok(service.toResponse(precheck));
-    }
-
-    // GET /api/precheck/user/{userId}
-    // 200 OK
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<PrecheckResponse>> listByUser(@PathVariable Long userId) {
-        List<Precheck> items = service.findByUser(userId);
-        return ResponseEntity.ok(service.toResponseList(items));
+    // GET /api/precheck/{precheckId}
+    // 사전문진 정보 조회 (id)
+    @GetMapping(value = "/{precheckId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PrecheckResponseDto> get(@PathVariable("precheckId") Long precheckId) {
+        Precheck precheck = service.get(precheckId);
+        return ResponseEntity.ok(service.toDetailResponse(precheck));
     }
 }
