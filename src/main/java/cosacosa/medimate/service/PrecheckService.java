@@ -6,7 +6,8 @@ import cosacosa.medimate.dto.PrecheckListItemResponseDto;
 import cosacosa.medimate.dto.PrecheckRequestDto;
 import cosacosa.medimate.dto.PrecheckResponseDto;
 import cosacosa.medimate.repository.PrecheckRepository;
-import cosacosa.medimate.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,28 +20,23 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PrecheckService {
     private final PrecheckRepository repository;
-    private final UserRepository userRepository;
+
+    @PersistenceContext
+    private EntityManager em;
 
     @Transactional
     public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResult ai) {
-        if (req.getUserId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required.");
-        }
-        User user = userRepository.findById(req.getUserId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Invalid userId: " + req.getUserId()));
-
+        User userRef = em.getReference(User.class, 1L);
         Precheck entity = Precheck.builder()
-                .title(nullToEmpty(ai.title()))
-                .content(nullToEmpty(ai.content()))
-                .name(nullToEmpty(req.getName()))
+                .title(ai.title())
+                .content(ai.content())
+                .name(req.getName())
                 .age(req.getAge())
-                .nationality(nullToEmpty(req.getNationality()))
-                .gender(nullToEmpty(req.getGender()))
-                .description(nullToEmpty(req.getDescription()))
-                .user(user)
+                .nationality(req.getNationality())
+                .gender(req.getGender())
+                .description(req.getDescription())
+                .user(userRef)
                 .build();
-
         return repository.save(entity);
     }
 
@@ -76,6 +72,4 @@ public class PrecheckService {
     public PrecheckResponseDto toDetailResponse(Precheck p) {
         return toCreateResponse(p);
     }
-
-    private String nullToEmpty(String s) { return s == null ? "" : s; }
 }
