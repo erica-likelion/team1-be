@@ -18,7 +18,6 @@ public class AiPrecheckService {
 
     public AiResult generateTitleAndContent(PrecheckRequestDto req) {
         try {
-            // System Prompt
             String systemPrompt = """
                 You are a clinical intake assistant for pre-visit triage.
                 Follow these rules exactly:
@@ -30,7 +29,6 @@ public class AiPrecheckService {
                 5. Do NOT include any text outside the JSON object.
                 """;
 
-            // User Prompt
             String userPrompt = String.format("""
                 {
                   "language": "%s",
@@ -45,7 +43,6 @@ public class AiPrecheckService {
                     safe(req.getNationality()), safe(req.getGender()), safe(req.getDescription())
             );
 
-            // 요청 JSON 생성
             String body = String.format("""
                 {
                   "model": "%s",
@@ -62,7 +59,6 @@ public class AiPrecheckService {
                     props.getTemperature()
             );
 
-            // WebClient 호출
             String raw = openAiWebClient.post()
                     .uri("/chat/completions")
                     .bodyValue(body)
@@ -70,33 +66,20 @@ public class AiPrecheckService {
                     .bodyToMono(String.class)
                     .block();
 
-            // 🟡 원시 응답 로그
-            System.out.println("🔹 OpenAI raw response:\n" + raw);
-
             ChatResponse resp = om.readValue(raw, ChatResponse.class);
             String contentText = (resp != null && resp.choices != null && !resp.choices.isEmpty())
                     ? resp.choices.get(0).message.content
                     : "";
 
-            // 🟡 OpenAI content 응답 로그
-            System.out.println("🔹 Parsed OpenAI content:\n" + contentText);
-
             if (contentText == null || contentText.isBlank()) return new AiResult("", "");
 
-            // JSON으로 파싱
             JsonNode json = om.readTree(contentText);
             String title = getText(json, "title");
             String content = getText(json, "content");
 
-            // ✅ 추출된 필드 로그
-            System.out.println("✅ Extracted title: " + title);
-            System.out.println("✅ Extracted content: " + content);
-
             return new AiResult(title, content);
 
         } catch (Exception e) {
-            System.out.println("❌ Error during OpenAI processing:");
-            e.printStackTrace();
             return new AiResult("", "");
         }
     }
@@ -113,7 +96,6 @@ public class AiPrecheckService {
         return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
     }
 
-    // 최종 결과 객체
     public record AiResult(String title, String content) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
