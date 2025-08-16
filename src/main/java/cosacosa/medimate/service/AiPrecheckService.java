@@ -124,4 +124,11 @@ public class AiPrecheckService {
 
     public record AiResult(String title, String content) {}
     public record Result(String title, String content) {}
+    public AiResult translateAndSummarize(String language, String description) {
+        PrecheckRequestDto req = PrecheckRequestDto.builder()
+                .language(language)
+                .description(description)
+                .build();
+        return generateTitleAndContent(req);
+    }
 }
