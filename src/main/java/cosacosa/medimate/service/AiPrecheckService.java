@@ -17,58 +17,52 @@ public class AiPrecheckService {
     private final ObjectMapper om = new ObjectMapper();
 
     public AiResult generateTitleAndContent(PrecheckRequestDto req) {
-        Result r = generate(
-                req.getLanguage(),
-                req.getName(),
-                req.getAge(),
-                req.getNationality(),
-                req.getGender(),
-                req.getDescription()
-        );
-        return new AiResult(r.title(), r.content());
-    }
-
-    public Result generate(String language, String name, Integer age,
-                           String nationality, String gender, String description) {
-
-        String sys = """
-            You are a clinical intake assistant for pre-visit triage.
-
-            Follow these rules exactly:
-            1. Output MUST be a valid JSON object with exactly two keys: "title" and "content".
-            2. "title": A concise one-line title summarizing the patient's symptoms and context.
-            3. "content": The patient's precheck information rewritten in Korean,
-               organized in a clear, polite, and clinically neutral style (no diagnosis or treatment).
-            4. Do NOT include any keys other than "title" and "content".
-            5. Do NOT include any text outside the JSON object.
-            """;
-
-        String lang = (language == null || language.isBlank())
-                ? props.getDefaultLanguage() : language;
-
-        String user = """
-            {
-              "language": "%s",
-              "name": "%s",
-              "age": %s,
-              "nationality": "%s",
-              "gender": "%s",
-              "description": "%s"
-            }
-            """.formatted(lang, n(name), (age == null ? "\"\"" : age), n(nationality), n(gender), n(description));
-
-        String body = """
-            {
-              "model": "%s",
-              "messages": [
-                {"role": "system", "content": %s},
-                {"role": "user", "content": %s}
-              ],
-              "temperature": %s
-            }
-            """.formatted(props.getModel(), quote(sys), quote(user), props.getTemperature());
-
         try {
+            // System Prompt
+            String systemPrompt = """
+                You are a clinical intake assistant for pre-visit triage.
+                Follow these rules exactly:
+                1. Output MUST be a valid JSON object with exactly two keys: "title" and "content".
+                2. "title": A concise one-line title summarizing the patient's symptoms and context.
+                3. "content": The patient's precheck information rewritten in Korean,
+                   organized in a clear, polite, and clinically neutral style (no diagnosis or treatment).
+                4. Do NOT include any keys other than "title" and "content".
+                5. Do NOT include any text outside the JSON object.
+                """;
+
+            // User Prompt
+            String userPrompt = String.format("""
+                {
+                  "language": "%s",
+                  "name": "%s",
+                  "age": %s,
+                  "nationality": "%s",
+                  "gender": "%s",
+                  "description": "%s"
+                }
+                """,
+                    safe(req.getLanguage()), safe(req.getName()), req.getAge(),
+                    safe(req.getNationality()), safe(req.getGender()), safe(req.getDescription())
+            );
+
+            // 요청 JSON 생성
+            String body = String.format("""
+                {
+                  "model": "%s",
+                  "messages": [
+                    {"role": "system", "content": %s},
+                    {"role": "user", "content": %s}
+                  ],
+                  "temperature": %s
+                }
+                """,
+                    props.getModel(),
+                    quote(systemPrompt),
+                    quote(userPrompt),
+                    props.getTemperature()
+            );
+
+            // WebClient 호출
             String raw = openAiWebClient.post()
                     .uri("/chat/completions")
                     .bodyValue(body)
@@ -76,39 +70,51 @@ public class AiPrecheckService {
                     .bodyToMono(String.class)
                     .block();
 
+            // 🟡 원시 응답 로그
+            System.out.println("🔹 OpenAI raw response:\n" + raw);
+
             ChatResponse resp = om.readValue(raw, ChatResponse.class);
-            String text = "";
-            if (resp != null &&
-                    resp.choices != null &&
-                    !resp.choices.isEmpty() &&
-                    resp.choices.get(0).message != null) {
-                text = resp.choices.get(0).message.content;
-            }
+            String contentText = (resp != null && resp.choices != null && !resp.choices.isEmpty())
+                    ? resp.choices.get(0).message.content
+                    : "";
 
-            if (text == null || text.isBlank()) return new Result("", "");
+            // 🟡 OpenAI content 응답 로그
+            System.out.println("🔹 Parsed OpenAI content:\n" + contentText);
 
-            JsonNode root = om.readTree(text);
-            String title = asText(root, "title");
-            String content = asText(root, "content");
+            if (contentText == null || contentText.isBlank()) return new AiResult("", "");
 
-            return new Result(title, content);
+            // JSON으로 파싱
+            JsonNode json = om.readTree(contentText);
+            String title = getText(json, "title");
+            String content = getText(json, "content");
+
+            // ✅ 추출된 필드 로그
+            System.out.println("✅ Extracted title: " + title);
+            System.out.println("✅ Extracted content: " + content);
+
+            return new AiResult(title, content);
 
         } catch (Exception e) {
-            return new Result("", "");
+            System.out.println("❌ Error during OpenAI processing:");
+            e.printStackTrace();
+            return new AiResult("", "");
         }
     }
 
-    private static String n(String s) {
+    private static String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    private static String asText(JsonNode node, String field) {
-        return node.has(field) && !node.get(field).isNull() ? node.get(field).asText("") : "";
     }
 
     private static String quote(String s) {
         return "\"" + s.replace("\"", "\\\"") + "\"";
     }
+
+    private static String getText(JsonNode node, String key) {
+        return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
+    }
+
+    // 최종 결과 객체
+    public record AiResult(String title, String content) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse {
@@ -124,7 +130,4 @@ public class AiPrecheckService {
     public static class Message {
         public String content;
     }
-
-    public record AiResult(String title, String content) {}
-    public record Result(String title, String content) {}
 }
