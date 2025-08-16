@@ -28,8 +28,8 @@ public class PrecheckService {
     public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResult ai) {
         User userRef = em.getReference(User.class, 1L);
         Precheck entity = Precheck.builder()
-                .title(ai.title())
-                .content(ai.content())
+                .title(ai.getTitle())
+                .content(ai.getContent())
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())

@@ -8,7 +8,6 @@ import cosacosa.medimate.dto.PrecheckRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
 import java.util.List;
 import java.util.Map;
 
@@ -21,47 +20,11 @@ public class AiPrecheckService {
 
     public AiResult generateTitleAndContent(PrecheckRequestDto req) {
         try {
-            // ✅ system prompt
-            String systemPrompt = """
-                You are a clinical intake assistant for pre-visit triage.
-                Follow these rules exactly:
-                1. Output MUST be a valid JSON object with exactly two keys: "title" and "content".
-                2. "title": A concise one-line title summarizing the patient's symptoms and context.
-                3. "content": The patient's precheck information rewritten in Korean,
-                   organized in a clear, polite, and clinically neutral style (no diagnosis or treatment).
-                4. Do NOT include any keys other than "title" and "content".
-                5. Do NOT include any text outside the JSON object.
-                """;
-
-            // ✅ user prompt
-            String userPrompt = String.format("""
-                {
-                  "language": "%s",
-                  "name": "%s",
-                  "age": %s,
-                  "nationality": "%s",
-                  "gender": "%s",
-                  "description": "%s"
-                }
-                """,
-                    safe(req.getLanguage()), safe(req.getName()), req.getAge(),
-                    safe(req.getNationality()), safe(req.getGender()), safe(req.getDescription())
-            );
-
-            // ✅ 요청 body를 Map으로 구성하여 안전하게 JSON 변환
-            Map<String, Object> requestBody = Map.of(
-                    "model", props.getModel(),
-                    "messages", List.of(
-                            Map.of("role", "system", "content", systemPrompt),
-                            Map.of("role", "user", "content", userPrompt)
-                    ),
-                    "temperature", props.getTemperature()
-            );
-
+            String systemPrompt = buildSystemPrompt();
+            String userPrompt = buildUserPrompt(req);
+            Map<String, Object> requestBody = buildRequestBody(systemPrompt, userPrompt);
             String body = om.writeValueAsString(requestBody);
-            System.out.println("📦 OpenAI 요청 Body:\n" + body);
 
-            // ✅ OpenAI 호출
             String raw = openAiWebClient.post()
                     .uri("/chat/completions")
                     .bodyValue(body)
@@ -69,44 +32,103 @@ public class AiPrecheckService {
                     .bodyToMono(String.class)
                     .block();
 
-            System.out.println("📨 OpenAI 응답 Raw:\n" + raw);
-
-            // ✅ 응답 파싱
-            ChatResponse resp = om.readValue(raw, ChatResponse.class);
-            String contentText = (resp != null && resp.choices != null && !resp.choices.isEmpty())
-                    ? resp.choices.get(0).message.content
-                    : "";
-
-            System.out.println("📄 contentText (AI가 반환한 메시지):\n" + contentText);
-
-            if (contentText == null || contentText.isBlank()) return new AiResult("", "");
-
-            JsonNode json = om.readTree(contentText);
+            String contentText = extractContentText(raw);
+            JsonNode json = parseContentToJson(contentText);
             String title = getText(json, "title");
             String content = getText(json, "content");
-
-            System.out.println("✅ 파싱된 title: " + title);
-            System.out.println("✅ 파싱된 content: " + content);
 
             return new AiResult(title, content);
 
         } catch (Exception e) {
-            System.out.println("❌ AI 응답 파싱 중 오류 발생:");
-            e.printStackTrace();
             return new AiResult("", "");
         }
     }
 
-    private static String safe(String s) {
-        return s == null ? "" : s;
+    // 시스템 프롬프트 구성
+    private String buildSystemPrompt() {
+        return """
+        You are a clinical intake assistant for pre-visit triage.
+        Respond ONLY with a valid JSON object with exactly two keys: "title" and "content".
+        Do NOT add any explanation, prefix, markdown, or surrounding text.
+        Return just the raw JSON. Example:
+        {
+          "title": "...",
+          "content": "..."
+        }
+        """;
     }
 
+    // 사용자 입력값으로 프롬프트 구성
+    private String buildUserPrompt(PrecheckRequestDto req) {
+        return String.format("""
+            {
+              "language": "%s",
+              "name": "%s",
+              "age": %s,
+              "nationality": "%s",
+              "gender": "%s",
+              "description": "%s"
+            }
+            """,
+                safe(req.getLanguage()), safe(req.getName()), req.getAge(),
+                safe(req.getNationality()), safe(req.getGender()), safe(req.getDescription())
+        );
+    }
+
+    // OpenAI 요청 바디 구성
+    private Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt) {
+        return Map.of(
+                "model", props.getModel(),
+                "messages", List.of(
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userPrompt)
+                ),
+                "temperature", props.getTemperature()
+        );
+    }
+
+    // OpenAI 응답에서 content 문자열만 추출
+    private String extractContentText(String raw) throws Exception {
+        ChatResponse resp = om.readValue(raw, ChatResponse.class);
+        if (resp == null || resp.choices == null || resp.choices.isEmpty()) return "";
+        return resp.choices.get(0).message.content;
+    }
+
+    // content 문자열을 JSON으로 파싱
+    private JsonNode parseContentToJson(String contentText) throws Exception {
+        return om.readTree(contentText);
+    }
+
+    // key가 존재하면 텍스트 추출
     private static String getText(JsonNode node, String key) {
         return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
     }
 
-    public record AiResult(String title, String content) {}
+    // null 방지 처리
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
 
+    // 결과 DTO
+    public static class AiResult {
+        private String title;
+        private String content;
+
+        public AiResult(String title, String content) {
+            this.title = title;
+            this.content = content;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getContent() {
+            return content;
+        }
+    }
+
+    // 응답
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse {
         public List<Choice> choices;
