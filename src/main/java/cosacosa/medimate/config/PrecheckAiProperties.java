@@ -11,5 +11,5 @@ import org.springframework.stereotype.Component;
 public class PrecheckAiProperties {
     private String model;
     private double temperature;
-    private String defaultLanguage = "english";
+    private String defaultLanguage = "korean";
 }

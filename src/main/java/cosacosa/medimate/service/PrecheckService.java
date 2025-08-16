@@ -13,24 +13,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PrecheckService {
-
     private final PrecheckRepository repository;
-    private final AiPrecheckService aiService;
 
     @PersistenceContext
     private EntityManager em;
 
     @Transactional
-    public Precheck saveWithAi(PrecheckRequestDto req) {
-        AiPrecheckService.AiResult ai = aiService.translateAndSummarize(req.getLanguage(), req.getDescription());
-
+    public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResult ai) {
         User userRef = em.getReference(User.class, 1L);
         Precheck entity = Precheck.builder()
                 .title(ai.title())
