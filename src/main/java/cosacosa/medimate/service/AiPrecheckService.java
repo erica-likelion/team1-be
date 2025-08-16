@@ -44,7 +44,6 @@ public class AiPrecheckService {
         }
     }
 
-    // 시스템 프롬프트 구성
     private String buildSystemPrompt() {
         return """
         You are a clinical intake assistant for pre-visit triage.
@@ -58,7 +57,6 @@ public class AiPrecheckService {
         """;
     }
 
-    // 사용자 입력값으로 프롬프트 구성
     private String buildUserPrompt(PrecheckRequestDto req) {
         return String.format("""
             {
@@ -75,7 +73,6 @@ public class AiPrecheckService {
         );
     }
 
-    // OpenAI 요청 바디 구성
     private Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt) {
         return Map.of(
                 "model", props.getModel(),
@@ -87,32 +84,27 @@ public class AiPrecheckService {
         );
     }
 
-    // OpenAI 응답에서 content 문자열만 추출
     private String extractContentText(String raw) throws Exception {
         ChatResponse resp = om.readValue(raw, ChatResponse.class);
         if (resp == null || resp.choices == null || resp.choices.isEmpty()) return "";
         return resp.choices.get(0).message.content;
     }
 
-    // content 문자열을 JSON으로 파싱
     private JsonNode parseContentToJson(String contentText) throws Exception {
         return om.readTree(contentText);
     }
 
-    // key가 존재하면 텍스트 추출
     private static String getText(JsonNode node, String key) {
         return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
     }
 
-    // null 방지 처리
     private static String safe(String s) {
         return s == null ? "" : s;
     }
 
-    // 결과 DTO
     public static class AiResult {
-        private String title;
-        private String content;
+        private final String title;
+        private final String content;
 
         public AiResult(String title, String content) {
             this.title = title;
@@ -128,7 +120,6 @@ public class AiPrecheckService {
         }
     }
 
-    // 응답
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse {
         public List<Choice> choices;
