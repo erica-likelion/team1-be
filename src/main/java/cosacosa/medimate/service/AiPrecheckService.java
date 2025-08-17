@@ -8,7 +8,8 @@ import cosacosa.medimate.dto.PrecheckRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -18,42 +19,46 @@ public class AiPrecheckService {
     private final ObjectMapper om = new ObjectMapper();
 
     public AiResult generateTitleAndContent(PrecheckRequestDto req) {
-        Result r = generate(
-                req.getLanguage(),
-                req.getName(),
-                req.getAge(),
-                req.getNationality(),
-                req.getGender(),
-                req.getDescription()
-        );
-        return new AiResult(r.title(), r.content());
+        try {
+            String systemPrompt = buildSystemPrompt();
+            String userPrompt = buildUserPrompt(req);
+            Map<String, Object> requestBody = buildRequestBody(systemPrompt, userPrompt);
+            String body = om.writeValueAsString(requestBody);
+
+            String raw = openAiWebClient.post()
+                    .uri("/chat/completions")
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            String contentText = extractContentText(raw);
+            JsonNode json = parseContentToJson(contentText);
+            String title = getText(json, "title");
+            String content = getText(json, "content");
+
+            return new AiResult(title, content);
+
+        } catch (Exception e) {
+            return new AiResult("", "");
+        }
     }
 
-    public Result generate(String language, String name, Integer age,
-                           String nationality, String gender, String description) {
+    private String buildSystemPrompt() {
+        return """
+        You are a clinical intake assistant for pre-visit triage.
+        Respond ONLY with a valid JSON object with exactly two keys: "title" and "content".
+        Do NOT add any explanation, prefix, markdown, or surrounding text.
+        Return just the raw JSON. Example:
+        {
+          "title": "...",
+          "content": "..."
+        }
+        """;
+    }
 
-        String sys = """
-            You are a clinical intake assistant for pre-visit triage.
-        
-            Follow these rules exactly:
-            1. Output MUST be a valid JSON object with exactly two keys: "title" and "content".
-            2. "title": A concise one-line title summarizing the patient's symptoms and context.
-            3. "content": The patient's precheck information rewritten in Korean,
-               organized in a clear, polite, and clinically neutral style (no diagnosis or treatment).
-            4. Do NOT include any keys other than "title" and "content".
-            5. Do NOT include any text outside the JSON object.
-        
-            Example JSON:
-            {
-              "title": "AI가 생성한 제목",
-              "content": "AI가 사용자가 입력한 사전문진 정보를 한국어로 정리해준 글"
-            }
-            """;
-
-        String lang = (language == null || language.isBlank())
-                ? props.getDefaultLanguage() : language;
-
-        String user = """
+    private String buildUserPrompt(PrecheckRequestDto req) {
+        return String.format("""
             {
               "language": "%s",
               "name": "%s",
@@ -62,66 +67,71 @@ public class AiPrecheckService {
               "gender": "%s",
               "description": "%s"
             }
-            """.formatted(lang, n(name), (age == null ? "\"\"" : age), n(nationality), n(gender), n(description));
+            """,
+                safe(req.getLanguage()), safe(req.getName()), req.getAge(),
+                safe(req.getNationality()), safe(req.getGender()), safe(req.getDescription())
+        );
+    }
 
-        String body = """
-            {
-              "model": "%s",
-              "messages": [
-                {"role": "system", "content": %s},
-                {"role": "user", "content": %s}
-              ],
-              "temperature": %s,
-              "response_format": {"type":"json_object"}
-            }
-            """.formatted(props.getModel(), quote(sys), quote(user), Double.toString(props.getTemperature()));
+    private Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt) {
+        return Map.of(
+                "model", props.getModel(),
+                "messages", List.of(
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userPrompt)
+                ),
+                "temperature", props.getTemperature()
+        );
+    }
 
-        try {
-            String raw = openAiWebClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorResume(e -> Mono.just("{\"choices\":[{\"message\":{\"content\":\"{\\\"title\\\":\\\"\\\",\\\"content\\\":\\\"\\\"}\"}}]}"))
-                    .block();
+    private String extractContentText(String raw) throws Exception {
+        ChatResponse resp = om.readValue(raw, ChatResponse.class);
+        if (resp == null || resp.choices == null || resp.choices.isEmpty()) return "";
+        return resp.choices.get(0).message.content;
+    }
 
-            ChatResponse resp = om.readValue(raw, ChatResponse.class);
-            String text = "";
-            if (resp != null &&
-                    resp.choices != null &&
-                    !resp.choices.isEmpty() &&
-                    resp.choices.get(0).message != null) {
-                text = resp.choices.get(0).message.content;
-            }
-            if (text == null || text.isBlank()) return new Result("", "");
+    private JsonNode parseContentToJson(String contentText) throws Exception {
+        return om.readTree(contentText);
+    }
 
-            JsonNode root = om.readTree(text);
-            return new Result(asText(root, "title"), asText(root, "content"));
+    private static String getText(JsonNode node, String key) {
+        return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
+    }
 
-        } catch (Exception e) {
-            return new Result("", "");
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
+
+    public static class AiResult {
+        private final String title;
+        private final String content;
+
+        public AiResult(String title, String content) {
+            this.title = title;
+            this.content = content;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getContent() {
+            return content;
         }
     }
 
-    private static String n(String s) { return s == null ? "" : s; }
-    private static String asText(JsonNode node, String field) {
-        return node.has(field) && !node.get(field).isNull() ? node.get(field).asText("") : "";
-    }
-    private static String quote(String s) { return "\"" + s.replace("\"","\\\"") + "\""; }
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse {
-        public java.util.List<Choice> choices;
+        public List<Choice> choices;
     }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Choice {
         public Message message;
     }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Message {
         public String content;
     }
-
-    public record AiResult(String title, String content) {}
-    public record Result(String title, String content) {}
 }

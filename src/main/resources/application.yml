@@ -1,3 +1,9 @@
+precheck:
+  ai:
+    model: gpt-4o
+    temperature: 0.7
+    default-language: korean
+
 spring:
   application:
     name: medimate

@@ -7,6 +7,9 @@ services:
       "--collation-server=utf8mb4_0900_ai_ci",
       "--default-time-zone=+09:00"
     ]
+    env_file:
+      - .env
+
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -28,6 +31,8 @@ services:
   app:
     build: .
     container_name: medimate-spring
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
