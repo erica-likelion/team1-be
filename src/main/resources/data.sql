@@ -67,3 +67,24 @@ INSERT INTO `precheck`
 (8,NULL,NULL,'2025-08-13','Chen Hao',29,'HongKong','M','Mild dizziness and fatigue, especially in the afternoons.',8),
 (9,NULL,NULL,'2025-08-13','Liu Mei',31,'China','F','Skin rash with itching on arms and neck for the past week.',9),
 (10,NULL,NULL,'2025-08-13','Zhang Wei',27,'Taiwan','M','Mild back pain after lifting heavy objects two days ago.',10);
+
+INSERT INTO `chat_room` (`id`, `room_code`, `last_chat`, `created_at`, `user_id`)
+VALUES
+(1, 'd3b8f2a1-e9c0-4b9e-8b1a-3e5f7a2d1b4c', '천만에요. 답변이 도움이 되었으면 좋겠습니다!', '2025-08-18', 1);
+
+
+-- ===============================================================
+-- ChatMessage Table Data (채팅 메시지 데이터)
+-- 모든 데이터는 chat_room_id = 1을 참조
+-- ===============================================================
+INSERT INTO `chat_message` (`id`, `sender`, `message`, `korean_message`, `created_at`, `chat_room_id`)
+VALUES
+(1, 'medi', 'Hello! How can I assist you with your medication?', '안녕하세요! 약과 관련하여 무엇을 도와드릴까요?', '2025-08-18 10:30:00', 1),
+(2, 'user', 'I have a headache.', '머리가 아파요.', '2025-08-18 10:30:45', 1),
+(3, 'medi', 'I see. Can you tell me more about your symptoms?', '그렇군요. 증상에 대해 더 자세히 말씀해주시겠어요?', '2025-08-18 10:31:10', 1),
+(4, 'user', 'It is a throbbing pain on one side of my head.', '머리 한쪽이 욱신거리는 통증이에요.', '2025-08-18 10:31:55', 1),
+(5, 'medi', 'Based on your symptoms, it could be a migraine. Have you experienced this before?', '증상으로 보아 편두통일 수 있습니다. 이전에도 이런 경험이 있으신가요?', '2025-08-18 10:32:30', 1),
+(6, 'user', 'Yes, a few times.', '네, 몇 번 있었습니다.', '2025-08-18 10:32:50', 1),
+(7, 'medi', 'I recommend resting in a quiet, dark room and taking an over-the-counter pain reliever.', '조용하고 어두운 방에서 휴식을 취하고, 일반의약품 진통제를 복용하는 것을 추천합니다.', '2025-08-18 10:33:40', 1),
+(8, 'user', 'Thank you for the advice.', '조언 감사합니다.', '2025-08-18 10:34:05', 1),
+(9, 'medi', 'You are welcome. I hope this helps!', '천만에요. 답변이 도움이 되었으면 좋겠습니다!', '2025-08-18 10:34:30', 1);
