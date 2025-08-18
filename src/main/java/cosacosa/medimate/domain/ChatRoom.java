@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.UUID;
 
 @Entity
 @NoArgsConstructor
@@ -24,4 +26,11 @@ public class ChatRoom {
     @JoinColumn(name = "user_id")
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
+
+    @PrePersist
+    public void prePersist() {
+        this.roomCode = UUID.randomUUID().toString();
+        this.createdAt = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        this.lastChat = ""; // 기본값 설정
+    }
 }
