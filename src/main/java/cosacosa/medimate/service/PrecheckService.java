@@ -25,11 +25,12 @@ public class PrecheckService {
     private EntityManager em;
 
     @Transactional
-    public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResult ai) {
+    public Precheck saveWithAi(PrecheckRequestDto req, AiPrecheckService.AiResultFull ai) {
         User userRef = em.getReference(User.class, 1L);
         Precheck entity = Precheck.builder()
-                .title(ai.getTitle())
-                .content(ai.getContent())
+                .title(ai.title())
+                .content(ai.content())
+                .koreanContent(ai.koreanContent())
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())
@@ -60,6 +61,7 @@ public class PrecheckService {
                 .id(p.getId())
                 .title(p.getTitle())
                 .content(p.getContent())
+                .koreanContent(p.getKoreanContent())
                 .createdAt(p.getCreatedAt())
                 .name(p.getName())
                 .age(p.getAge())
