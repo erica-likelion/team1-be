@@ -1,6 +1,7 @@
 package cosacosa.medimate.controller;
 
 import cosacosa.medimate.dto.ChatMessageResponse;
+import cosacosa.medimate.dto.ChatRoomResponse;
 import cosacosa.medimate.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,12 @@ public class ChatController {
     @GetMapping("/api/chat/rooms/{roomId}")
     public ResponseEntity<List<ChatMessageResponse>> getMessageList(@PathVariable Long roomId) {
         List<ChatMessageResponse> result = chatService.readMessageList(roomId);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/api/chat/rooms")
+    public ResponseEntity<List<ChatRoomResponse>> getRoomList() {
+        List<ChatRoomResponse> result = chatService.readAllChatRoom();
         return ResponseEntity.ok(result);
     }
 }
