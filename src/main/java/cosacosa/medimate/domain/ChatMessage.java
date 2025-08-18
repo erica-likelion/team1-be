@@ -21,7 +21,7 @@ public class ChatMessage {
 
     private String koreanMessage;
 
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")
