@@ -23,7 +23,7 @@ public class PrecheckController {
     // 저장된 번역 내용 반환
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PrecheckResponseDto> create(@RequestBody PrecheckRequestDto req) {
-        AiPrecheckService.AiResult ai = aiService.generateTitleAndContent(req);
+        AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
         Precheck saved = service.saveWithAi(req, ai);
         return ResponseEntity.ok(service.toCreateResponse(saved));
     }

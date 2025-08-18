@@ -14,7 +14,8 @@ import java.time.LocalDate;
 public class PrecheckResponseDto {
     private Long id;
     private String title;
-    private String content;
+    private String content; // 사용자 언어 버전
+    private String koreanContent;   // 한국어 버전
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate createdAt;
