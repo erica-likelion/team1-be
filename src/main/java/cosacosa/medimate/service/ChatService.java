@@ -46,4 +46,9 @@ public class ChatService {
                 chatRoom.getCreatedAt()
         )).toList();
     }
+
+    public ChatRoomResponse createChatRoom() {
+        ChatRoom room = chatRoomRepository.save(new ChatRoom());
+        return new ChatRoomResponse(room.getId(), room.getRoomCode());
+    }
 }

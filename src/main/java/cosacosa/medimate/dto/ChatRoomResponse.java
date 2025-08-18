@@ -17,4 +17,9 @@ public class ChatRoomResponse {
         this.lastChat = lastChat;
         this.createdAt = createdAt;
     }
+
+    public ChatRoomResponse(Long id, String roomCode) {
+        this.id = id;
+        this.roomCode = roomCode;
+    }
 }

@@ -9,6 +9,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
@@ -33,6 +34,12 @@ public class ChatController {
     @GetMapping("/api/chat/rooms")
     public ResponseEntity<List<ChatRoomResponse>> getRoomList() {
         List<ChatRoomResponse> result = chatService.readAllChatRoom();
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/api/chat/rooms")
+    public ResponseEntity<ChatRoomResponse> postChatRoom() {
+        ChatRoomResponse result = chatService.createChatRoom();
         return ResponseEntity.ok(result);
     }
 }
