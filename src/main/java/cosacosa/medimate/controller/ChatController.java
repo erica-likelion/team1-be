@@ -1,5 +1,6 @@
 package cosacosa.medimate.controller;
 
+import cosacosa.medimate.dto.Chat;
 import cosacosa.medimate.dto.ChatMessageResponse;
 import cosacosa.medimate.dto.ChatRoomResponse;
 import cosacosa.medimate.service.ChatService;
@@ -20,7 +21,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @MessageMapping("/chat/message")
-    public void message(ChatMessageResponse chatMessage) {
+    public void message(Chat chatMessage) {
         System.out.println("메세지 요청을 받았습니다!");
         chatService.processMessage(chatMessage);
     }
