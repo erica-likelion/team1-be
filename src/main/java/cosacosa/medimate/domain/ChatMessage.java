@@ -20,8 +20,10 @@ public class ChatMessage {
 
     private String sender;
 
+    @Column(columnDefinition = "TEXT")
     private String message;
 
+    @Column(columnDefinition = "TEXT")
     private String koreanMessage;
 
     private LocalDateTime createdAt;
