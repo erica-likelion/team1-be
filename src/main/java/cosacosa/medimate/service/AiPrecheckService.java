@@ -18,41 +18,36 @@ public class AiPrecheckService {
     private final PrecheckAiProperties props;
     private final ObjectMapper om = new ObjectMapper();
 
-    public AiResult generateTitleAndContent(PrecheckRequestDto req) {
+    public AiResultFull generateTitleAndContent(PrecheckRequestDto req) {
         try {
             String systemPrompt = buildSystemPrompt();
             String userPrompt = buildUserPrompt(req);
-            Map<String, Object> requestBody = buildRequestBody(systemPrompt, userPrompt);
-            String body = om.writeValueAsString(requestBody);
 
-            String raw = openAiWebClient.post()
-                    .uri("/chat/completions")
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            JsonNode json = callOpenAi(systemPrompt, userPrompt);
 
-            String contentText = extractContentText(raw);
-            JsonNode json = parseContentToJson(contentText);
             String title = getText(json, "title");
             String content = getText(json, "content");
+            String koreanContent = getText(json, "koreanContent");
 
-            return new AiResult(title, content);
-
+            return new AiResultFull(title, content, koreanContent);
         } catch (Exception e) {
-            return new AiResult("", "");
+            return new AiResultFull("", "", "");
         }
     }
 
     private String buildSystemPrompt() {
         return """
         You are a clinical intake assistant for pre-visit triage.
-        Respond ONLY with a valid JSON object with exactly two keys: "title" and "content".
+        Respond ONLY with a valid JSON object with exactly three keys: "title", "content", "koreanContent".
+        - "title": A concise one-line summary of the patient's symptoms/context.
+        - "content": Rewrite the patient's precheck info in a clear, polite, clinically neutral style in the input language.
+        - "koreanContent": A faithful Korean rendition of "content".
         Do NOT add any explanation, prefix, markdown, or surrounding text.
         Return just the raw JSON. Example:
         {
           "title": "...",
-          "content": "..."
+          "content": "...",
+          "koreanContent": "..."
         }
         """;
     }
@@ -73,8 +68,8 @@ public class AiPrecheckService {
         );
     }
 
-    private Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt) {
-        return Map.of(
+    private JsonNode callOpenAi(String systemPrompt, String userPrompt) throws Exception {
+        Map<String, Object> requestBody = Map.of(
                 "model", props.getModel(),
                 "messages", List.of(
                         Map.of("role", "system", "content", systemPrompt),
@@ -82,43 +77,32 @@ public class AiPrecheckService {
                 ),
                 "temperature", props.getTemperature()
         );
+        String raw = openAiWebClient.post()
+                .uri("/chat/completions")
+                .bodyValue(om.writeValueAsString(requestBody))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        String contentText = extractContentText(raw);
+        return om.readTree(contentText != null ? contentText : "{}");
     }
 
     private String extractContentText(String raw) throws Exception {
         ChatResponse resp = om.readValue(raw, ChatResponse.class);
         if (resp == null || resp.choices == null || resp.choices.isEmpty()) return "";
-        return resp.choices.get(0).message.content;
-    }
-
-    private JsonNode parseContentToJson(String contentText) throws Exception {
-        return om.readTree(contentText);
+        Message msg = resp.choices.get(0).message;
+        return msg != null ? msg.content : "";
     }
 
     private static String getText(JsonNode node, String key) {
-        return node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
+        return node != null && node.has(key) && !node.get(key).isNull() ? node.get(key).asText("") : "";
     }
 
     private static String safe(String s) {
         return s == null ? "" : s;
     }
 
-    public static class AiResult {
-        private final String title;
-        private final String content;
-
-        public AiResult(String title, String content) {
-            this.title = title;
-            this.content = content;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public String getContent() {
-            return content;
-        }
-    }
+    public record AiResultFull(String title, String content, String koreanContent) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse {

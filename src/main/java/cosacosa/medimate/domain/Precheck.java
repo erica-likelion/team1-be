@@ -53,5 +53,8 @@ public class Precheck {
             nullable = false,
             foreignKey = @ForeignKey(name = "fk_precheck_user")
     )
-    private User user;                      // FK: precheck.userId → user.id
+    private User user;  // FK: precheck.userId → user.id
+
+    @Column(name = "korean_content", columnDefinition = "TEXT")
+    private String koreanContent;   // 한국어 버전 AI 생성글
 }
