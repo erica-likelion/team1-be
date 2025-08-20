@@ -125,6 +125,7 @@ public class ChatService {
         )).toList();
     }
 
+    @Transactional
     public ChatRoomResponse createChatRoom(ChatRoomRequest dto) {
         ChatRoom room = chatRoomRepository.save(new ChatRoom());
         String message = "";
@@ -137,7 +138,6 @@ public class ChatService {
         return createMessage(message, koreanMessage, room);
     }
 
-    @Transactional
     private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room) {
         ChatMessage newMessage = new ChatMessage(
                 "user",
