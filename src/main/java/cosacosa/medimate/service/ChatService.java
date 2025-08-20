@@ -2,8 +2,10 @@ package cosacosa.medimate.service;
 
 import cosacosa.medimate.domain.ChatMessage;
 import cosacosa.medimate.domain.ChatRoom;
+import cosacosa.medimate.domain.Precheck;
 import cosacosa.medimate.dto.Chat;
 import cosacosa.medimate.dto.ChatMessageResponse;
+import cosacosa.medimate.dto.ChatRoomRequest;
 import cosacosa.medimate.dto.ChatRoomResponse;
 import cosacosa.medimate.repository.ChatMessageRepository;
 import cosacosa.medimate.repository.ChatRoomRepository;
@@ -23,6 +25,8 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final WebClient openAiWebClient;
+    private final PrecheckService precheckService;
+    private final PrescriptionService prescriptionService;
 
     private record OpenAiRequest(String model, List<Message> messages, double temperature) {}
     private record Message(String role, String content) {}
@@ -121,8 +125,35 @@ public class ChatService {
         )).toList();
     }
 
-    public ChatRoomResponse createChatRoom() {
+    public ChatRoomResponse createChatRoom(ChatRoomRequest dto) {
         ChatRoom room = chatRoomRepository.save(new ChatRoom());
+        String message = "";
+        String koreanMessage = "";
+        if (dto.getType().equals("precheck") && dto.getPrecheckId() != null) {
+            Precheck precheck = precheckService.get(dto.getPrecheckId());
+            message = precheck.getContent();
+            koreanMessage = precheck.getKoreanContent();
+        }
+        return createMessage(message, koreanMessage, room);
+    }
+
+    @Transactional
+    private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room) {
+        ChatMessage newMessage = new ChatMessage(
+                "user",
+                message,
+                koreanMessage,
+                room
+        );
+        ChatMessageResponse chatResponse = new ChatMessageResponse(
+                newMessage.getId(),
+                newMessage.getSender(),
+                newMessage.getMessage(),
+                newMessage.getKoreanMessage(),
+                newMessage.getCreatedAt(),
+                newMessage.getChatRoom().getId()
+        );
+        messagingTemplate.convertAndSend("/sub/chat/rooms/" + room.getId(), chatResponse);
         return new ChatRoomResponse(room.getId(), room.getRoomCode());
     }
 }

@@ -2,6 +2,7 @@ package cosacosa.medimate.controller;
 
 import cosacosa.medimate.dto.Chat;
 import cosacosa.medimate.dto.ChatMessageResponse;
+import cosacosa.medimate.dto.ChatRoomRequest;
 import cosacosa.medimate.dto.ChatRoomResponse;
 import cosacosa.medimate.service.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -39,8 +41,8 @@ public class ChatController {
     }
 
     @PostMapping("/api/chat/rooms")
-    public ResponseEntity<ChatRoomResponse> postChatRoom() {
-        ChatRoomResponse result = chatService.createChatRoom();
+    public ResponseEntity<ChatRoomResponse> postChatRoom(@RequestBody ChatRoomRequest dto) {
+        ChatRoomResponse result = chatService.createChatRoom(dto);
         return ResponseEntity.ok(result);
     }
 }
