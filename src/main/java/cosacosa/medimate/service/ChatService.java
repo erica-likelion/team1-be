@@ -145,6 +145,7 @@ public class ChatService {
                 koreanMessage,
                 room
         );
+        chatMessageRepository.save(newMessage);
         ChatMessageResponse chatResponse = new ChatMessageResponse(
                 newMessage.getId(),
                 newMessage.getSender(),
