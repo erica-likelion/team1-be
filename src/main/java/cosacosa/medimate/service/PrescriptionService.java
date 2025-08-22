@@ -25,6 +25,8 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -176,59 +178,58 @@ public class PrescriptionService {
 
     private String createDetailsPrompt(String medicineNames, String language) {
         // ... (기존과 동일, 변경 없음)
-        String targetLanguage = "english".equalsIgnoreCase(language) || "chinese".equalsIgnoreCase(language) ? language : "english";
         return String.format("""
-        당신은 한국의 약학 정보에 능통한 전문 약사입니다. 아래 '의약품 목록'에 명시된 한국 의약품에 대한 상세 정보를 생성해 주세요. 
-        출력은 반드시 지정된 두 섹션으로만 구성하며, 각 섹션의 헤더/필드명/순서/들여쓰기를 정확히 준수해야 합니다.
+        당신은 한국의 약학 정보에 능통한 전문 약사입니다. 처방전을 입력한 환자에게 처방받은 의약품들에 대해 쉼고 자세하게 설명해주는 글을 생성해야합니다.
+반드시 아래 출력 틀 그대로 생성해야 합니다.
+출력 시작 전후에 어떤 텍스트도 쓰지 마세요(설명/경고/요약/인용/코드블록 금지). 
 
-        의약품 목록:
-        %s
+의약품 목록:
+%1$s
 
-        절대 준수사항:
-        1) 의약품 목록에 있는 품목만 다루고, 목록의 순서를 그대로 유지합니다. 추가/누락/재배열 금지.
-        2) 각 의약품에 대해 아래 6개 필드를 정확한 영문/한글 레이블로 모두 포함하고, 필드 순서를 반드시 지킵니다.
-           영어 섹션: Efficacy, Usage, Precautions, Drug Interactions, Side Effects, Storage
-           한국어 섹션: 효능, 사용법, 주의사항, 약물 상호작용, 부작용, 보관법
-        3) 각 필드의 설명은 한 줄 이상으로 작성하되, 설명 줄 앞에는 탭 문자(\\t) 하나만 사용해 들여쓰기합니다. 공백 들여쓰기 금지.
-        4) 불필요한 문장, 요약, 서문/맺음말, 번호/목록 기호(-, • 등), 링크, 인용, 참고문헌, 경고 배지, 마크다운(해시태그 #, 별표 *)를 절대 포함하지 마세요.
-        5) 복용법/용량은 일반적 권장 범위로 간결히 기술하고, 개인 맞춤/진단/처방 유도 문구는 쓰지 않습니다.
-        6) 확실하지 않은 정보는 추정하지 말고 영어 섹션에는 "N/A", 한국어 섹션에는 "정보 없음"이라고만 기재합니다.
-        7) 의약품 이름은 제공된 표기 그대로 사용하고, 번역/괄호 병기는 하지 않습니다.
-        8) 각 의약품 블록 사이에는 빈 줄 하나만 두고, 섹션 헤더·필드명·콜론 뒤의 공백 규칙을 지킵니다.
+절대 준수사항:
+1) 의약품 목록의 품목만, 주어진 순서 그대로 출력합니다(추가/누락/재배열 금지). %2$s 버전의 경우는 의약품 이름을 해당 언어로 번역해서 보여줘야합니다.
+2) 한국어와 %2$s 두 버전의 생성물이 있어야합니다. 각각의 버전에는 다음 항목들이 포함됩니다.
+   효능, 사용법, 주의사항, 약물 상호작용, 부작용, 보관법
+   (약물 상호작용에는 같이 복용하면 위험할 수 있는 의약품들을 알려줘야합니다.)
+3) 각 설명 줄은 탭 문자(\\t)로만 1단 들여쓰기 합니다(스페이스 들여쓰기 금지).
+4) 마크다운/번호/불릿/링크/추가 코멘트/콘텐츠 확장 금지.
+5) 의약품명은 입력 그대로 사용(번역/괄호 표기 금지).
+6) 두 블록 사이에는 빈 줄 1개만, 그 외 불필요한 빈 줄 금지.
 
-        출력 형식(이 형식을 정확히 복제할 것):
-        --- %s response ---
-        [Medicine Name 1]
-        Efficacy:
-            ...
-        Usage:
-            ...
-        Precautions:
-            ...
-        Drug Interactions:
-            ...
-        Side Effects:
-            ...
-        Storage:
-            ...
+출력 예시:
+<<<BEGIN_KO>>>
+[의약품명 1]
+효능:
+\t...
+사용법:
+\t...
+주의사항:
+\t...
+약물 상호작용:
+\t...
+부작용:
+\t...
+보관법:
+\t...
 
-        --- korean response ---
-        [의약품명 1]
-        효능:
-            ...
-        사용법:
-            ...
-        주의사항:
-            ...
-        약물 상호작용:
-            ...
-        부작용:
-            ...
-        보관법:
-            ...
-
-        위 형식을 모든 의약품에 대해 반복 출력하세요. 형식 외의 어떤 내용도 출력하지 마세요.
-        """, medicineNames, targetLanguage, targetLanguage);
+[의약품명 2]
+효능:
+\t...
+사용법:
+\t...
+주의사항:
+\t...
+약물 상호작용:
+\t...
+부작용:
+\t...
+보관법:
+\t...
+<<<END_KO>>>
+<<<BEGIN_%2$s>>>
+...(한국어 출력과 같은 형식)
+<<<END_%2$s>>>
+""", medicineNames, language.toUpperCase());
     }
 
     private String parseContentFromApiResponse(String response, String apiType) {
@@ -241,22 +242,26 @@ public class PrescriptionService {
     }
 
     private List<String> parseAiResponse(String text, String language) {
-        String foreignContent = "";
-        String koreanContent = "";
+        if (text == null) return List.of("", "");
 
-        String delimiter = "--- korean response ---";
-        String[] parts = text.split(delimiter);
+        String content = "";
+        String koreanContent  = "";
 
-        if (parts.length > 1) {
-            String langHeader = String.format("--- %s response ---",
-                    language);
-            foreignContent = parts[0].replace(langHeader, "").trim();
-            koreanContent = parts[1].trim();
+        // DOTALL 모드로 줄바꿈 포함 매칭
+        Pattern pattern = Pattern.compile(
+                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>", language.toUpperCase(), language.toUpperCase())
+        );
+        Matcher matcher = pattern.matcher(text.trim());
+
+        if (matcher.find()) {
+            koreanContent = matcher.group(1).trim();
+            content  = matcher.group(2).trim();
         } else {
-            log.warn("AI response format was not as expected. Storing full content in koreanContent.");
+            // 센티넬이 없으면 전체를 koreanContent로 반환
             koreanContent = text.trim();
         }
-        return List.of(foreignContent, koreanContent);
+
+        return List.of(content, koreanContent);
     }
 
     private String callOpenAiApi(Map<String, Object> requestBody) {
