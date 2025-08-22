@@ -204,7 +204,7 @@ public class PrescriptionService {
              사용법:
                  사용법에 대한 설명...
              (이하 생략)
-             """, medicineNames, targetLanguage, targetLanguage.toUpperCase());
+             """, medicineNames, targetLanguage, targetLanguage);
     }
 
     private String parseContentFromApiResponse(String response, String apiType) {
