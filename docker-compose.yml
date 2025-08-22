@@ -26,7 +26,7 @@ services:
       retries: 20
     restart: unless-stopped
     ports:
-      - "3306:3306"   # 프로덕션에선 필요 시 제거
+      - "3333:3306"   # 프로덕션에선 필요 시 제거
 
   app:
     build: .
