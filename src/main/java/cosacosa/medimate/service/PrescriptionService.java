@@ -189,7 +189,7 @@ public class PrescriptionService {
              3. 절대 해시태그(#)나 별표(*) 같은 마크다운 서식을 사용하지 마세요.
              4. 아래 예시와 동일한 일반 텍스트 형식으로만 작성하고, 각 설명 줄은 탭(tab)으로 들여쓰기해야 합니다.
 
-             --- %s Response ---
+             --- %s response ---
              [Medicine Name 1]
              Efficacy:
                  Efficacy description...
@@ -197,7 +197,7 @@ public class PrescriptionService {
                  Usage description...
              (이하 생략)
 
-             --- Korean Response ---
+             --- korean response ---
              [의약품명 1]
              효능:
                  효능에 대한 설명...
@@ -220,11 +220,11 @@ public class PrescriptionService {
         String foreignContent = "";
         String koreanContent = "";
 
-        String delimiter = "--- Korean Response ---";
+        String delimiter = "--- korean response ---";
         String[] parts = text.split(delimiter);
 
         if (parts.length > 1) {
-            String langHeader = String.format("--- %s Response ---",
+            String langHeader = String.format("--- %s response ---",
                     language.toUpperCase());
             foreignContent = parts[0].replace(langHeader, "").trim();
             koreanContent = parts[1].trim();
