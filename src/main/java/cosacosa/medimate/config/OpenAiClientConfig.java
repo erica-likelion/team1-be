@@ -40,8 +40,8 @@ public class OpenAiClientConfig {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
                 .responseTimeout(Duration.ofSeconds(60))
                 .doOnConnected(conn -> {
-                    conn.addHandlerLast(new ReadTimeoutHandler(30, TimeUnit.SECONDS));
-                    conn.addHandlerLast(new WriteTimeoutHandler(30, TimeUnit.SECONDS));
+                    conn.addHandlerLast(new ReadTimeoutHandler(60, TimeUnit.SECONDS));
+                    conn.addHandlerLast(new WriteTimeoutHandler(60, TimeUnit.SECONDS));
                 })
                 .compress(true); // HTTP 응답 압축 허용
 
