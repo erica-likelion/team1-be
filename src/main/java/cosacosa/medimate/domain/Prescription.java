@@ -28,7 +28,7 @@ public class Prescription {
     private String images = "";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false, name = "user_id")
+    @JoinColumn(name = "user_id")
     private User user; // 처방전을 입력한 사용자
 
     @PrePersist
@@ -36,10 +36,9 @@ public class Prescription {
         this.createdAt = LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
-    public Prescription(String title, String content, String koreanContent, User user) {
+    public Prescription(String title, String content, String koreanContent) {
         this.title = title;
         this.content = content;
         this.koreanContent = koreanContent;
-        this.user = user;
     }
 }
