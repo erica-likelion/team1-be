@@ -19,7 +19,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PrecheckService {
+    private static final String DEFAULT_VISIT_PURPOSE = "증상 상담";
     private final PrecheckRepository repository;
+    private final AiPrecheckService aiService;
 
     @PersistenceContext
     private EntityManager em;
@@ -31,6 +33,7 @@ public class PrecheckService {
                 .title(ai.title())
                 .content(ai.content())
                 .koreanContent(ai.koreanContent())
+                .visitPurpose(resolveVisitPurpose(ai.visitPurpose()))
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())
@@ -57,6 +60,32 @@ public class PrecheckService {
     }
 
     public PrecheckResponseDto toCreateResponse(Precheck p) {
+        return toDto(p);
+    }
+
+    @Transactional
+    public PrecheckResponseDto toDetailResponse(Precheck p) {
+        boolean changed = false;
+
+        if (isBlank(p.getTitle()) || isBlank(p.getContent()) || isBlank(p.getKoreanContent())) {
+            PrecheckRequestDto req = toReqFromEntity(p);
+            AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
+
+            if (isBlank(p.getTitle()))         { p.setTitle(ai.title()); changed = true; }
+            if (isBlank(p.getContent()))       { p.setContent(ai.content()); changed = true; }
+            if (isBlank(p.getKoreanContent())) { p.setKoreanContent(ai.koreanContent()); changed = true; }
+        }
+
+        if (isBlank(p.getVisitPurpose())) {
+            p.setVisitPurpose(DEFAULT_VISIT_PURPOSE);
+            changed = true;
+        }
+
+        if (changed) repository.saveAndFlush(p);
+        return toDto(p);
+    }
+
+    private PrecheckResponseDto toDto(Precheck p) {
         return PrecheckResponseDto.builder()
                 .id(p.getId())
                 .title(p.getTitle())
@@ -68,10 +97,26 @@ public class PrecheckService {
                 .nationality(p.getNationality())
                 .gender(p.getGender())
                 .description(p.getDescription())
+                .visitPurpose(resolveVisitPurpose(p.getVisitPurpose()))
                 .build();
     }
 
-    public PrecheckResponseDto toDetailResponse(Precheck p) {
-        return toCreateResponse(p);
+    private PrecheckRequestDto toReqFromEntity(Precheck p) {
+        PrecheckRequestDto req = new PrecheckRequestDto();
+        req.setLanguage(""); // 저장된 언어가 있다면 그 값을 사용
+        req.setName(p.getName());
+        req.setAge(p.getAge());
+        req.setNationality(p.getNationality());
+        req.setGender(p.getGender());
+        req.setDescription(p.getDescription() == null ? "" : p.getDescription());
+        return req;
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private static String resolveVisitPurpose(String v) {
+        return isBlank(v) ? DEFAULT_VISIT_PURPOSE : v;
     }
 }

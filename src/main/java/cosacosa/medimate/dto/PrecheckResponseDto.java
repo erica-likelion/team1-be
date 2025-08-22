@@ -1,6 +1,7 @@
 package cosacosa.medimate.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.AllArgsConstructor;
@@ -14,8 +15,8 @@ import java.time.LocalDate;
 public class PrecheckResponseDto {
     private Long id;
     private String title;
-    private String content; // 사용자 언어 버전
-    private String koreanContent;   // 한국어 버전
+    private String content;        // 사용자 언어 버전
+    private String koreanContent;  // 한국어 버전
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate createdAt;
@@ -25,4 +26,7 @@ public class PrecheckResponseDto {
     private String nationality;
     private String gender;
     private String description;
+
+    @JsonProperty("visitPurpose")
+    private String visitPurpose;       // '증상 상담' 고정
 }

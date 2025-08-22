@@ -20,7 +20,6 @@ public class PrecheckController {
     private final AiPrecheckService aiService;
 
     // POST /api/precheck
-    // 저장된 번역 내용 반환
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PrecheckResponseDto> create(@RequestBody PrecheckRequestDto req) {
         AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
@@ -29,16 +28,14 @@ public class PrecheckController {
     }
 
     // GET /api/precheck
-    // 사전문진 데이터 전체 조회
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PrecheckListItemResponseDto>> list() {
         return ResponseEntity.ok(service.list());
     }
 
     // GET /api/precheck/{precheckId}
-    // 사전문진 정보 조회 (id)
     @GetMapping(value = "/{precheckId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PrecheckResponseDto> get(@PathVariable("precheckId") Long precheckId) {
+    public ResponseEntity<PrecheckResponseDto> get(@PathVariable Long precheckId) {
         Precheck precheck = service.get(precheckId);
         return ResponseEntity.ok(service.toDetailResponse(precheck));
     }
