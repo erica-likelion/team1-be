@@ -28,6 +28,9 @@ dependencies {
 	// WebClient (OpenAI 호출)
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+	implementation platform('software.amazon.awssdk:bom:2.25.48') // AWS SDK 버전 관리를 위한 BOM
+	implementation 'software.amazon.awssdk:s3'
+
 	// JPA + MySQL
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	runtimeOnly 'com.mysql:mysql-connector-j'
