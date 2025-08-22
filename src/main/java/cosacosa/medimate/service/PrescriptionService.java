@@ -225,7 +225,7 @@ public class PrescriptionService {
 
         if (parts.length > 1) {
             String langHeader = String.format("--- %s response ---",
-                    language.toUpperCase());
+                    language);
             foreignContent = parts[0].replace(langHeader, "").trim();
             koreanContent = parts[1].trim();
         } else {
