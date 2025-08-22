@@ -178,33 +178,57 @@ public class PrescriptionService {
         // ... (기존과 동일, 변경 없음)
         String targetLanguage = "english".equalsIgnoreCase(language) || "chinese".equalsIgnoreCase(language) ? language : "english";
         return String.format("""
-             당신은 한국의 약학 정보에 능통한 전문 약사입니다. 아래 '의약품 목록'에 명시된 한국 의약품에 대한 상세 정보를 생성해 주세요.
+        당신은 한국의 약학 정보에 능통한 전문 약사입니다. 아래 '의약품 목록'에 명시된 한국 의약품에 대한 상세 정보를 생성해 주세요. 
+        출력은 반드시 지정된 두 섹션으로만 구성하며, 각 섹션의 헤더/필드명/순서/들여쓰기를 정확히 준수해야 합니다.
 
-             **의약품 목록:**
-             %s
+        의약품 목록:
+        %s
 
-             **준수사항:**
-             1. 각 의약품에 대해 다음 정보를 반드시 포함해 주세요: 효능, 사용법, 주의사항, 약물 상호작용 (함께 복용하면 안 되는 특정 의약품), 부작용, 보관법.
-             2. 최종 결과물은 '%s'와 '한국어', 총 두 가지 언어로 제공해야 합니다.
-             3. 절대 해시태그(#)나 별표(*) 같은 마크다운 서식을 사용하지 마세요.
-             4. 아래 예시와 동일한 일반 텍스트 형식으로만 작성하고, 각 설명 줄은 탭(tab)으로 들여쓰기해야 합니다.
+        절대 준수사항:
+        1) 의약품 목록에 있는 품목만 다루고, 목록의 순서를 그대로 유지합니다. 추가/누락/재배열 금지.
+        2) 각 의약품에 대해 아래 6개 필드를 정확한 영문/한글 레이블로 모두 포함하고, 필드 순서를 반드시 지킵니다.
+           영어 섹션: Efficacy, Usage, Precautions, Drug Interactions, Side Effects, Storage
+           한국어 섹션: 효능, 사용법, 주의사항, 약물 상호작용, 부작용, 보관법
+        3) 각 필드의 설명은 한 줄 이상으로 작성하되, 설명 줄 앞에는 탭 문자(\\t) 하나만 사용해 들여쓰기합니다. 공백 들여쓰기 금지.
+        4) 불필요한 문장, 요약, 서문/맺음말, 번호/목록 기호(-, • 등), 링크, 인용, 참고문헌, 경고 배지, 마크다운(해시태그 #, 별표 *)를 절대 포함하지 마세요.
+        5) 복용법/용량은 일반적 권장 범위로 간결히 기술하고, 개인 맞춤/진단/처방 유도 문구는 쓰지 않습니다.
+        6) 확실하지 않은 정보는 추정하지 말고 영어 섹션에는 "N/A", 한국어 섹션에는 "정보 없음"이라고만 기재합니다.
+        7) 의약품 이름은 제공된 표기 그대로 사용하고, 번역/괄호 병기는 하지 않습니다.
+        8) 각 의약품 블록 사이에는 빈 줄 하나만 두고, 섹션 헤더·필드명·콜론 뒤의 공백 규칙을 지킵니다.
 
-             --- %s response ---
-             [Medicine Name 1]
-             Efficacy:
-                 Efficacy description...
-             Usage:
-                 Usage description...
-             (이하 생략)
+        출력 형식(이 형식을 정확히 복제할 것):
+        --- %s response ---
+        [Medicine Name 1]
+        Efficacy:
+            ...
+        Usage:
+            ...
+        Precautions:
+            ...
+        Drug Interactions:
+            ...
+        Side Effects:
+            ...
+        Storage:
+            ...
 
-             --- korean response ---
-             [의약품명 1]
-             효능:
-                 효능에 대한 설명...
-             사용법:
-                 사용법에 대한 설명...
-             (이하 생략)
-             """, medicineNames, targetLanguage, targetLanguage);
+        --- korean response ---
+        [의약품명 1]
+        효능:
+            ...
+        사용법:
+            ...
+        주의사항:
+            ...
+        약물 상호작용:
+            ...
+        부작용:
+            ...
+        보관법:
+            ...
+
+        위 형식을 모든 의약품에 대해 반복 출력하세요. 형식 외의 어떤 내용도 출력하지 마세요.
+        """, medicineNames, targetLanguage, targetLanguage);
     }
 
     private String parseContentFromApiResponse(String response, String apiType) {
