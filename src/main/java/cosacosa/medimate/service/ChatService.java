@@ -131,6 +131,7 @@ public class ChatService {
         ChatRoom room = chatRoomRepository.save(new ChatRoom());
         String message = "";
         String koreanMessage = "";
+        String sender = "user";
         if (dto.getType().equals("precheck") && dto.getPrecheckId() != null) {
             Precheck precheck = precheckService.get(dto.getPrecheckId());
             message = precheck.getContent();
@@ -140,9 +141,17 @@ public class ChatService {
             message = prescription.getContent();
             koreanMessage = prescription.getKoreanContent();
         } else {
-
+            koreanMessage = "안녕하세요. 무엇을 도와드릴까요?";
+            if (dto.getLanguage().equals("english")) {
+                message = "Hello. How can I help you?";
+            } else if (dto.getLanguage().equals("chinese")) {
+                message = "您好，请问有什么可以帮您的吗？";
+            } else {
+                message = koreanMessage;
+            }
+            sender = "medi";
         }
-        return createMessage(message, koreanMessage, room, "user");
+        return createMessage(message, koreanMessage, room, sender);
     }
 
     private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room, String sender) {
