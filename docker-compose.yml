@@ -9,7 +9,6 @@ services:
     ]
     env_file:
       - .env
-
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -26,7 +25,7 @@ services:
       retries: 20
     restart: unless-stopped
     ports:
-      - "3306:3306"   # 프로덕션에선 필요 시 제거
+      - "3333:3306"  # 프로덕션에선 가능하면 제거
 
   app:
     build: .
@@ -45,34 +44,40 @@ services:
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
       AWS_KEY: ${AWS_KEY}
       UPSTAGE_API_KEY: ${UPSTAGE_API_KEY}
-
+      # 스프링이 프록시 헤더를 올바르게 인식하도록 (아래 7단계 참고)
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      SERVER_PORT: 8080
+      SERVER_ADDRESS: 0.0.0.0
     depends_on:
       db:
         condition: service_healthy
     ports:
-       - "8080:8080"
+      - "8080:8080"
     restart: unless-stopped
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.27-alpine
     container_name: medimate-nginx
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ${PWD}/nginx/conf.d:/etc/nginx/conf.d       # <-- 경로 수정
-      - ${PWD}/certbot/conf:/etc/letsencrypt        # <-- 경로 수정
-      - ${PWD}/certbot/www:/var/www/certbot         # <-- 경로 수정
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - app
     restart: unless-stopped
 
+  # certbot은 one-off 실행 용도 (항상 켜둘 필요 없음)
   certbot:
-    image: certbot/certbot
+    image: certbot/certbot:latest
     container_name: medimate-certbot
     volumes:
-      - ${PWD}/certbot/conf:/etc/letsencrypt        # <-- 경로 수정
-      - ${PWD}/certbot/www:/var/www/certbot         # <-- 경로 수정
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # 기본은 아무 것도 안 함(필요 시 run으로 호출)
+    command: ["--version"]
 
 volumes:
   mysql_data:
