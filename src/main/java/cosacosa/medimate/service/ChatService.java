@@ -3,6 +3,7 @@ package cosacosa.medimate.service;
 import cosacosa.medimate.domain.ChatMessage;
 import cosacosa.medimate.domain.ChatRoom;
 import cosacosa.medimate.domain.Precheck;
+import cosacosa.medimate.domain.Prescription;
 import cosacosa.medimate.dto.Chat;
 import cosacosa.medimate.dto.ChatMessageResponse;
 import cosacosa.medimate.dto.ChatRoomRequest;
@@ -134,13 +135,19 @@ public class ChatService {
             Precheck precheck = precheckService.get(dto.getPrecheckId());
             message = precheck.getContent();
             koreanMessage = precheck.getKoreanContent();
+        } else if (dto.getType().equals("prescription") && dto.getPrescriptionId() != null) {
+            Prescription prescription = prescriptionService.get(dto.getPrescriptionId());
+            message = prescription.getContent();
+            koreanMessage = prescription.getKoreanContent();
+        } else {
+
         }
-        return createMessage(message, koreanMessage, room);
+        return createMessage(message, koreanMessage, room, "user");
     }
 
-    private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room) {
+    private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room, String sender) {
         ChatMessage newMessage = new ChatMessage(
-                "user",
+                sender,
                 message,
                 koreanMessage,
                 room

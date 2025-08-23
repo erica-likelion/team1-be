@@ -48,6 +48,10 @@ public class PrescriptionService {
     @Value("${upstage.api.key}")
     private String upstageApiKey;
 
+    public Prescription get(Long prescriptionId) {
+        return prescriptionRepository.findById(prescriptionId).orElseThrow(() -> new RuntimeException("해당 처방전을 찾을 수 없습니다."));
+    }
+
     public PrescriptionResponse createPrescription(PrescriptionRequest dto) throws IOException {
         String imageUrl = fileUploadService.uploadFile(dto.getImage());
         log.info("Uploaded prescription image to S3: {}", imageUrl);
@@ -112,8 +116,8 @@ public class PrescriptionService {
                 )).collect(Collectors.toList());
     }
 
-    public PrescriptionResponse readPrescription() {
-        Prescription prescription = prescriptionRepository.findById(1L).orElseThrow(() -> new RuntimeException("해당 id의 prescription을 찾을 수 없습니다."));
+    public PrescriptionResponse readPrescription(Long prescriptionId) {
+        Prescription prescription = prescriptionRepository.findById(prescriptionId).orElseThrow(() -> new RuntimeException("해당 id의 prescription을 찾을 수 없습니다."));
         return new PrescriptionResponse(
                 prescription.getId(),
                 prescription.getTitle(),
