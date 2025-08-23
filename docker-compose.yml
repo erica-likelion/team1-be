@@ -50,29 +50,29 @@ services:
       db:
         condition: service_healthy
     ports:
-      # - "8080:8080"
+       - "8080:8080"
     restart: unless-stopped
 
-nginx:
-  image: nginx:latest
-  container_name: medimate-nginx
-  ports:
-    - "80:80"
-    - "443:443"
-  volumes:
-    - ./nginx/conf.d:/etc/nginx/conf.d
-    - ./certbot/conf:/etc/letsencrypt
-    - ./certbot/www:/var/www/certbot
-  depends_on:
-    - app
-  restart: unless-stopped
+  nginx:
+    image: nginx:latest
+    container_name: medimate-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${PWD}/nginx/conf.d:/etc/nginx/conf.d       # <-- 경로 수정
+      - ${PWD}/certbot/conf:/etc/letsencrypt        # <-- 경로 수정
+      - ${PWD}/certbot/www:/var/www/certbot         # <-- 경로 수정
+    depends_on:
+      - app
+    restart: unless-stopped
 
   certbot:
     image: certbot/certbot
     container_name: medimate-certbot
     volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
+      - ${PWD}/certbot/conf:/etc/letsencrypt        # <-- 경로 수정
+      - ${PWD}/certbot/www:/var/www/certbot         # <-- 경로 수정
 
 volumes:
   mysql_data:
