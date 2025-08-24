@@ -86,7 +86,7 @@ public class PrescriptionService {
             List<String> parsedContents = parseAiResponse(fullContent, dto.getLanguage());
 
             Prescription prescription = new Prescription(
-                    "처방전 약품 상세 정보",
+                    parsedContents.get(2),
                     parsedContents.get(0),
                     parsedContents.get(1)
             );
@@ -184,7 +184,9 @@ public class PrescriptionService {
         // ... (기존과 동일, 변경 없음)
         return String.format("""
         당신은 한국의 약학 정보에 능통한 전문 약사입니다. 처방전을 입력한 환자에게 처방받은 의약품들에 대해 쉼고 자세하게 설명해주는 글을 생성해야합니다.
-반드시 아래 출력 틀 그대로 생성해야 합니다.
+그리고 추가로 이 처방전을 한 줄로 요약한 제목을 생성해야 합니다. 환자가 약들을 처방받은 이유를 한 줄로 요약하는 제목을 %2$s 언어로 마지막에 생성해주세요.
+반드시 아래 출력 틀 그대로 생성해야 합니다. 
+
 출력 시작 전후에 어떤 텍스트도 쓰지 마세요(설명/경고/요약/인용/코드블록 금지). 
 
 의약품 목록:
@@ -195,6 +197,7 @@ public class PrescriptionService {
 2) 한국어와 %2$s 두 버전의 생성물이 있어야합니다. 각각의 버전에는 다음 항목들이 포함됩니다.
    효능, 사용법, 주의사항, 약물 상호작용, 부작용, 보관법
    (약물 상호작용에는 같이 복용하면 위험할 수 있는 의약품들을 알려줘야합니다.)
+   (%2$s 버전의 경우에는 이 항목들도 %2$s 언어로 번역해서 보여줘야합니다.)
 3) 각 설명 줄은 탭 문자(\\t)로만 1단 들여쓰기 합니다(스페이스 들여쓰기 금지).
 4) 마크다운/번호/불릿/링크/추가 코멘트/콘텐츠 확장 금지.
 5) 의약품명은 입력 그대로 사용(번역/괄호 표기 금지).
@@ -233,6 +236,9 @@ public class PrescriptionService {
 <<<BEGIN_%2$s>>>
 ...(한국어 출력과 같은 형식)
 <<<END_%2$s>>>
+<<<BEGIN_TITLE>>>
+...(처방전을 요약하는 제목을 %2$s로 생성해주세요)
+<<<END_TITLE>>>
 """, medicineNames, language.toUpperCase());
     }
 
@@ -250,22 +256,24 @@ public class PrescriptionService {
 
         String content = "";
         String koreanContent  = "";
+        String title = "";
 
         // DOTALL 모드로 줄바꿈 포함 매칭
         Pattern pattern = Pattern.compile(
-                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>", language.toUpperCase(), language.toUpperCase())
+                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>.*?<<<BEGIN_TITLE>>>\\s*(.*?)\\s*<<<END_TITLE>>>", language.toUpperCase(), language.toUpperCase())
         );
         Matcher matcher = pattern.matcher(text.trim());
 
         if (matcher.find()) {
             koreanContent = matcher.group(1).trim();
             content  = matcher.group(2).trim();
+            title = matcher.group(3).trim();
         } else {
             // 센티넬이 없으면 전체를 koreanContent로 반환
             koreanContent = text.trim();
         }
 
-        return List.of(content, koreanContent);
+        return List.of(content, koreanContent, title);
     }
 
     private String callOpenAiApi(Map<String, Object> requestBody) {
