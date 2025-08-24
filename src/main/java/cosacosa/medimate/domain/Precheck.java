@@ -28,6 +28,9 @@ public class Precheck {
     @Column(columnDefinition = "TEXT")
     private String content;                 // AI 문진 번역
 
+    @Column(name = "visit_purpose", nullable = false, length = 50)
+    private String visitPurpose;
+
     @CreationTimestamp
     @Column(name = "createdAt", nullable = false, updatable = false)
     private LocalDate createdAt;            // 문진 작성일

@@ -1,4 +1,5 @@
 .env
+certbot/
 HELP.md
 .gradle
 build/

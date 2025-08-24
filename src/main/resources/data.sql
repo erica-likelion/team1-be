@@ -54,8 +54,19 @@ Contact: +82-10-1234-5678
 
 
 
--- ===== PRECHECK =====
+--- ===== PRECHECK =====
 INSERT INTO `precheck`
+(`id`,`title`,`content`,`created_at`,`name`,`age`,`nationality`,`gender`,`description`,`user_id`,`visit_purpose`) VALUES
+(1,NULL,NULL,'2025-08-13','John Smith',35,'USA','M','I have a sore throat, mild fever, and headache for 2 days.',1,'Symptom consultation'),
+(2,NULL,NULL,'2025-08-13','Emily Clark',28,'UK','F','I\'ve been coughing with green phlegm and chest tightness.',2,'Symptom consultation'),
+(3,NULL,NULL,'2025-08-13','Michael Brown',42,'Australia','M','Fever, body aches, and chills started last night.',3,'Symptom consultation'),
+(4,NULL,NULL,'2025-08-13','Sarah Wilson',30,'Canada','F','My nose is congested, and I can\'t stop sneezing.',4,'Symptom consultation'),
+(5,NULL,NULL,'2025-08-13','David Johnson',26,'NewZealand','M','I have itchy eyes and runny nose in the morning.',5,'Symptom consultation'),
+(6,NULL,NULL,'2025-08-13','Li Wei',40,'China','M','Persistent cough with occasional shortness of breath and mild fever for 3 days.',6,'Symptom consultation'),
+(7,NULL,NULL,'2025-08-13','Wang Fang',33,'Taiwan','F','Sharp abdominal pain and nausea that started this morning.',7,'Symptom consultation'),
+(8,NULL,NULL,'2025-08-13','Chen Hao',29,'HongKong','M','Mild dizziness and fatigue, especially in the afternoons.',8,'Symptom consultation'),
+(9,NULL,NULL,'2025-08-13','Liu Mei',31,'China','F','Skin rash with itching on arms and neck for the past week.',9,'Symptom consultation'),
+(10,NULL,NULL,'2025-08-13','Zhang Wei',27,'Taiwan','M','Mild back pain after lifting heavy objects two days ago.',10,'Symptom consultation');
 (`id`,`title`,`content`,`created_at`,`name`,`age`,`nationality`,`gender`,`description`,`user_id`) VALUES
 (1,NULL,NULL,'2025-08-13','John Smith',35,'USA','M','I have a sore throat, mild fever, and headache for 2 days.',1),
 (2,NULL,NULL,'2025-08-13','Emily Clark',28,'UK','F','I\'ve been coughing with green phlegm and chest tightness.',2),
