@@ -3,6 +3,7 @@ package cosacosa.medimate.service;
 import cosacosa.medimate.domain.ChatMessage;
 import cosacosa.medimate.domain.ChatRoom;
 import cosacosa.medimate.domain.Precheck;
+import cosacosa.medimate.domain.Prescription;
 import cosacosa.medimate.dto.Chat;
 import cosacosa.medimate.dto.ChatMessageResponse;
 import cosacosa.medimate.dto.ChatRoomRequest;
@@ -130,17 +131,32 @@ public class ChatService {
         ChatRoom room = chatRoomRepository.save(new ChatRoom());
         String message = "";
         String koreanMessage = "";
+        String sender = "user";
         if (dto.getType().equals("precheck") && dto.getPrecheckId() != null) {
             Precheck precheck = precheckService.get(dto.getPrecheckId());
             message = precheck.getContent();
             koreanMessage = precheck.getKoreanContent();
+        } else if (dto.getType().equals("prescription") && dto.getPrescriptionId() != null) {
+            Prescription prescription = prescriptionService.get(dto.getPrescriptionId());
+            message = prescription.getContent();
+            koreanMessage = prescription.getKoreanContent();
+        } else {
+            koreanMessage = "안녕하세요. 무엇을 도와드릴까요?";
+            if (dto.getLanguage().equals("english")) {
+                message = "Hello. How can I help you?";
+            } else if (dto.getLanguage().equals("chinese")) {
+                message = "您好，请问有什么可以帮您的吗？";
+            } else {
+                message = koreanMessage;
+            }
+            sender = "medi";
         }
-        return createMessage(message, koreanMessage, room);
+        return createMessage(message, koreanMessage, room, sender);
     }
 
-    private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room) {
+    private ChatRoomResponse createMessage(String message, String koreanMessage, ChatRoom room, String sender) {
         ChatMessage newMessage = new ChatMessage(
-                "user",
+                sender,
                 message,
                 koreanMessage,
                 room

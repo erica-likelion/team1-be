@@ -42,7 +42,7 @@ public class PrescriptionController {
 
     @GetMapping("/{prescriptionId}")
     public ResponseEntity<PrescriptionResponse> getPrescription(@PathVariable Long prescriptionId) {
-        PrescriptionResponse result = prescriptionService.readPrescription();
+        PrescriptionResponse result = prescriptionService.readPrescription(prescriptionId);
         return ResponseEntity.ok(result);
     }
 }
