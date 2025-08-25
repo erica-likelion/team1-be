@@ -13,5 +13,4 @@ public class PrecheckRequestDto {
     private String gender;
     private String description;
     private String nationality;
-    private String visitPurpose;
 }
