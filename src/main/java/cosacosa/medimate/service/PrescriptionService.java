@@ -305,7 +305,7 @@ public class PrescriptionService {
 
         // DOTALL 모드로 줄바꿈 포함 매칭
         Pattern pattern = Pattern.compile(
-                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>.*?<<<BEGIN_KO_MD>>>\\s*(.*?)\\s*<<<END_KO_MD>>>.*?<<<BEGIN_%s_MD>>>\\s*(.*?)\\s*<<<END_%s_MD>>>.*?<<<BEGIN_TITLE>>>\\s*(.*?)\\s*<<<END_TITLE>>>", language.toUpperCase(), language.toUpperCase())
+                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%1$s>>>\\s*(.*?)\\s*<<<END_%1$s>>>.*?<<<BEGIN_KO_MD>>>\\s*(.*?)\\s*<<<END_KO_MD>>>.*?<<<BEGIN_%1$s_MD>>>\\s*(.*?)\\s*<<<END_%1$s_MD>>>.*?<<<BEGIN_TITLE>>>\\s*(.*?)\\s*<<<END_TITLE>>>", language.toUpperCase())
         );
         Matcher matcher = pattern.matcher(text.trim());
 
