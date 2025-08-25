@@ -27,6 +27,10 @@ public class ChatRoom {
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
+    public void setLastChat(String lastChat) {
+        this.lastChat = lastChat;
+    }
+
     @PrePersist
     public void prePersist() {
         this.roomCode = UUID.randomUUID().toString();

@@ -91,6 +91,10 @@ public class ChatService {
                 koreanMessage,
                 chatRoom
         ));
+        
+        ChatRoom room = chatRoomRepository.findById(chatMessage.getRoomId()).orElseThrow(() -> new RuntimeException("room 찾기 실패"));
+        room.setLastChat(message);
+        chatRoomRepository.save(room);
 
         ChatMessageResponse chatResponse = new ChatMessageResponse(
                 newMessage.getId(),
