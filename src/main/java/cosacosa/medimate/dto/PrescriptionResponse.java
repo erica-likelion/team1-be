@@ -14,13 +14,11 @@ public class PrescriptionResponse {
     private String koreanContentMd;
     private LocalDate createdAt;
 
-    public PrescriptionResponse(Long id, String title, String content, String koreanContent, String contentMd, String koreanContentMd, LocalDate createdAt) {
+    public PrescriptionResponse(Long id, String title, String content, String koreanContent, LocalDate createdAt) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.koreanContent = koreanContent;
-        this.contentMd = contentMd;
-        this.koreanContentMd = koreanContentMd;
         this.createdAt = createdAt;
     }
 }
