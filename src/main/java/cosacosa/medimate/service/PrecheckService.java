@@ -102,7 +102,7 @@ public class PrecheckService {
         req.setNationality(p.getNationality());
         req.setGender(p.getGender());
         req.setDescription(p.getDescription() == null ? "" : p.getDescription());
-        req.setVisitPurpose(p.getVisitPurpose() == null ? "" : p.getVisitPurpose()); // 이 줄을 추가합니다.
+        req.setVisitPurpose(p.getVisitPurpose() == null ? "" : p.getVisitPurpose());
         return req;
     }
 
