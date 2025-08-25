@@ -22,6 +22,7 @@ public class AiPrecheckService {
     private final WebClient openAiWebClient;
     private final PrecheckAiProperties props;
     private final ObjectMapper om = new ObjectMapper();
+
     private static final String GENDER_M_KR = "남성";
     private static final String GENDER_F_KR = "여성";
 
@@ -53,6 +54,11 @@ public class AiPrecheckService {
     );
 
     public AiResultFull generateTitleAndContent(PrecheckRequestDto req) {
+        String language = req.getLanguage();
+        if (language == null || language.isBlank()) {
+            language = detectLanguage(req.getDescription());
+        }
+
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(req);
         JsonNode json = callOpenAi(systemPrompt, userPrompt);
@@ -60,22 +66,23 @@ public class AiPrecheckService {
         String title = getText(json, "title");
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
+        // AI가 번역한 국적을 받아옵니다.
+        String translatedNationality = getText(json, "translatedNationality");
 
-        // 입력 언어를 기반으로 content 필드를 동적으로 조합
-        String language = req.getLanguage();
         String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel(language, "name"), getNameByLanguage(req.getName(), language),
                 getLabel(language, "age"), req.getAge(),
                 getLabel(language, "gender"), getGenderByLanguage(req.getGender(), language),
-                getLabel(language, "nationality"), getNationalityByLanguage(req.getNationality(), language),
+                getLabel(language, "nationality"), req.getNationality(), // 원문 국적 그대로 사용
                 getLabel(language, "visitPurpose"), getLabel(language, "visitPurpose"),
                 getLabel(language, "symptoms"), symptomParagraph);
 
+        // AI가 번역한 국적을 사용합니다.
         String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel("ko", "name"), getKoreanName(req.getName()),
                 getLabel("ko", "age"), req.getAge(),
                 getLabel("ko", "gender"), getKoreanGender(req.getGender()),
-                getLabel("ko", "nationality"), getKoreanNationality(req.getNationality()),
+                getLabel("ko", "nationality"), translatedNationality, // AI가 번역한 국적 사용
                 getLabel("ko", "visitPurpose"), getLabel("ko", "visitPurpose"),
                 getLabel("ko", "symptoms"), koreanSymptomParagraph);
 
@@ -84,67 +91,7 @@ public class AiPrecheckService {
         return new AiResultFull(title, visitPurpose, content, koreanContent);
     }
 
-    private String getLabel(String lang, String key) {
-        return LABELS.getOrDefault(lang, LABELS.get("en")).get(key);
-    }
-
-    private String getNameByLanguage(String name, String lang) {
-        if ("ko".equals(lang)) {
-            return getKoreanName(name);
-        }
-        return name;
-    }
-
-    private String getGenderByLanguage(String gender, String lang) {
-        if ("ko".equals(lang)) {
-            return getKoreanGender(gender);
-        } else if ("zh".equals(lang)) {
-            if ("M".equalsIgnoreCase(gender)) return "男性";
-            if ("F".equalsIgnoreCase(gender)) return "女性";
-        }
-        return gender;
-    }
-
-    private String getNationalityByLanguage(String nationality, String lang) {
-        if ("ko".equals(lang)) {
-            return getKoreanNationality(nationality);
-        } else if ("zh".equals(lang)) {
-            return switch (nationality.toLowerCase(Locale.ROOT)) {
-                case "korea", "south korea" -> "韩国";
-                case "china" -> "中国";
-                case "usa" -> "美国";
-                default -> nationality;
-            };
-        }
-        return nationality;
-    }
-
-    private String getKoreanName(String name) {
-        return name;
-    }
-    private static String getKoreanGender(String gender) {
-        if ("M".equalsIgnoreCase(gender)) {
-            return GENDER_M_KR;
-        } else if ("F".equalsIgnoreCase(gender)) {
-            return GENDER_F_KR;
-        }
-        return gender;
-    }
-    private static String getKoreanNationality(String nationality) {
-        return switch (nationality.toLowerCase(Locale.ROOT)) {
-            case "usa" -> "미국";
-            case "korea" -> "한국";
-            case "uk" -> "영국";
-            case "australia" -> "호주";
-            case "canada" -> "캐나다";
-            case "newzealand" -> "뉴질랜드";
-            case "china" -> "중국";
-            case "taiwan" -> "대만";
-            case "hongkong" -> "홍콩";
-            default -> nationality;
-        };
-    }
-
+    // AI에 국적 번역을 요청하는 시스템 프롬프트
     private String buildSystemPrompt() {
         return """
         You are a clinical intake assistant for pre-visit triage.
@@ -153,6 +100,7 @@ public class AiPrecheckService {
           - "title": one-line summary of the patient's symptoms/context (string)
           - "symptomParagraph": patient's symptoms in a single, coherent paragraph, in the patient's original language.
           - "koreanSymptomParagraph": patient's symptoms in a single, coherent paragraph, in Korean.
+          - "translatedNationality": patient's nationality translated into Korean.
 
         ======================
         SYMPTOMS PARAGRAPH COMPOSITION:
@@ -184,6 +132,52 @@ public class AiPrecheckService {
           - No markdown/explanations outside JSON.
           - No extra keys beyond the specified.
         """;
+    }
+
+    private String detectLanguage(String text) {
+        if (text == null || text.isBlank()) {
+            return "en";
+        }
+        if (text.matches(".*[가-힣].*")) {
+            return "ko";
+        }
+        if (text.matches(".*[\\u4e00-\\u9fff].*")) {
+            return "zh";
+        }
+        return "en";
+    }
+
+    private String getLabel(String lang, String key) {
+        return LABELS.getOrDefault(lang, LABELS.get("en")).get(key);
+    }
+
+    private String getNameByLanguage(String name, String lang) {
+        if ("ko".equals(lang)) {
+            return getKoreanName(name);
+        }
+        return name;
+    }
+
+    private String getGenderByLanguage(String gender, String lang) {
+        if ("ko".equals(lang)) {
+            return getKoreanGender(gender);
+        } else if ("zh".equals(lang)) {
+            if ("M".equalsIgnoreCase(gender)) return "男性";
+            if ("F".equalsIgnoreCase(gender)) return "女性";
+        }
+        return gender;
+    }
+
+    private String getKoreanName(String name) {
+        return name;
+    }
+    private static String getKoreanGender(String gender) {
+        if ("M".equalsIgnoreCase(gender)) {
+            return GENDER_M_KR;
+        } else if ("F".equalsIgnoreCase(gender)) {
+            return GENDER_F_KR;
+        }
+        return gender;
     }
 
     private String buildUserPrompt(PrecheckRequestDto req) {
