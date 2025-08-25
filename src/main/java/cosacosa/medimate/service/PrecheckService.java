@@ -48,7 +48,7 @@ public class PrecheckService {
     }
 
     public List<PrecheckListItemResponseDto> list() {
-        return repository.findAllByOrderByIdDesc().stream()
+        return repository.findAllByOrderByIdAsc().stream()
                 .map(p -> PrecheckListItemResponseDto.builder()
                         .id(p.getId())
                         .title(p.getTitle())

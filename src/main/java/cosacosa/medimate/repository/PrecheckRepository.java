@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface PrecheckRepository extends JpaRepository<Precheck, Long> {
     List<Precheck> findAllByOrderByIdDesc();
+    List<Precheck> findAllByOrderByIdAsc();
 }
