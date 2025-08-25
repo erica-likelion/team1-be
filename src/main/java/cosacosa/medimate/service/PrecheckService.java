@@ -91,13 +91,13 @@ public class PrecheckService {
                 .nationality(p.getNationality())
                 .gender(p.getGender())
                 .description(p.getDescription())
-                .visitPurpose(p.getVisitPurpose()) // AI 결과값을 그대로 사용
+                .visitPurpose(p.getVisitPurpose())
                 .build();
     }
 
     private PrecheckRequestDto toReqFromEntity(Precheck p) {
         PrecheckRequestDto req = new PrecheckRequestDto();
-        req.setLanguage(""); // 저장된 언어가 있다면 그 값을 사용
+        req.setLanguage("");
         req.setName(p.getName());
         req.setAge(p.getAge());
         req.setNationality(p.getNationality());
