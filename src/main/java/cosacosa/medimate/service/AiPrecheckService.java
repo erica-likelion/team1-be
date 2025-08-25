@@ -58,24 +58,25 @@ public class AiPrecheckService {
         JsonNode json = callOpenAi(systemPrompt, userPrompt);
 
         String language = getText(json, "detectedLanguage");
+        // AI가 번역한 `nationality`와 `translatedNationality`를 모두 가져옵니다.
+        String nationality = getText(json, "nationality");
         String translatedNationality = getText(json, "translatedNationality");
-        // AI가 번역한 visitPurpose를 가져오도록 수정
         String translatedVisitPurpose = getText(json, "translatedVisitPurpose");
 
         String title = getText(json, "title");
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
 
-        // content의 항목명과 visitPurpose의 내용을 사용자의 언어(중국어)로 변경
+        // `content`의 국적을 AI가 번역한 원본 언어(중국어)로 변경합니다.
         String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel(language, "name"), getNameByLanguage(req.getName(), language),
                 getLabel(language, "age"), req.getAge(),
                 getLabel(language, "gender"), getGenderByLanguage(req.getGender(), language),
-                getLabel(language, "nationality"), translatedNationality,
+                getLabel(language, "nationality"), nationality,
                 getLabel(language, "visitPurpose"), translatedVisitPurpose,
                 getLabel(language, "symptoms"), symptomParagraph);
 
-        // koreanContent는 기존 로직을 유지하여 한국어로 생성
+        // `koreanContent`의 국적은 AI가 번역한 한국어 버전으로 유지합니다.
         String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel("ko", "name"), getKoreanName(req.getName()),
                 getLabel("ko", "age"), req.getAge(),
@@ -84,7 +85,6 @@ public class AiPrecheckService {
                 getLabel("ko", "visitPurpose"), getLabel("ko", "visitPurpose"),
                 getLabel("ko", "symptoms"), koreanSymptomParagraph);
 
-        // 반환할 visitPurpose도 번역된 값으로 설정
         return new AiResultFull(title, translatedVisitPurpose, content, koreanContent);
     }
 
@@ -97,7 +97,8 @@ public class AiPrecheckService {
           - "symptomParagraph": patient's symptoms in a single, coherent paragraph, in the patient's original language.
           - "koreanSymptomParagraph": patient's symptoms in a single, coherent paragraph, in Korean.
           - "detectedLanguage": the language of the patient's symptoms in a lowercase ISO 639-1 code (e.g., 'en', 'ko', 'zh').
-          - "translatedNationality": a common nationality for the detected language, translated into Korean. Do not guess the patient's nationality if no country is explicitly mentioned in the description; instead, use a default value like "미국" if the language is English or "한국" if the language is Korean.
+          - "nationality": the patient's nationality, translated into the patient's original language.
+          - "translatedNationality": the patient's nationality, translated into Korean.
           - "translatedVisitPurpose": the visitPurpose, translated into the patient's original language.
         ======================
         SYMPTOMS PARAGRAPH COMPOSITION:
