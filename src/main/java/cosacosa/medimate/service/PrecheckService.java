@@ -19,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PrecheckService {
-    private static final String DEFAULT_VISIT_PURPOSE = "증상 상담";
     private final PrecheckRepository repository;
     private final AiPrecheckService aiService;
 
@@ -33,7 +32,7 @@ public class PrecheckService {
                 .title(ai.title())
                 .content(ai.content())
                 .koreanContent(ai.koreanContent())
-                .visitPurpose(resolveVisitPurpose(ai.visitPurpose()))
+                .visitPurpose(ai.visitPurpose()) // AI 결과값을 그대로 사용
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())
@@ -76,11 +75,6 @@ public class PrecheckService {
             if (isBlank(p.getKoreanContent())) { p.setKoreanContent(ai.koreanContent()); changed = true; }
         }
 
-        if (isBlank(p.getVisitPurpose())) {
-            p.setVisitPurpose(DEFAULT_VISIT_PURPOSE);
-            changed = true;
-        }
-
         if (changed) repository.saveAndFlush(p);
         return toDto(p);
     }
@@ -97,7 +91,7 @@ public class PrecheckService {
                 .nationality(p.getNationality())
                 .gender(p.getGender())
                 .description(p.getDescription())
-                .visitPurpose(resolveVisitPurpose(p.getVisitPurpose()))
+                .visitPurpose(p.getVisitPurpose()) // AI 결과값을 그대로 사용
                 .build();
     }
 
@@ -114,9 +108,5 @@ public class PrecheckService {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
-    }
-
-    private static String resolveVisitPurpose(String v) {
-        return isBlank(v) ? DEFAULT_VISIT_PURPOSE : v;
     }
 }
