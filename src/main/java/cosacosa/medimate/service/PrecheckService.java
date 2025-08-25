@@ -32,7 +32,7 @@ public class PrecheckService {
                 .title(ai.title())
                 .content(ai.content())
                 .koreanContent(ai.koreanContent())
-                .visitPurpose(ai.visitPurpose()) // AI 결과값을 그대로 사용
+                .visitPurpose(ai.visitPurpose())
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())
@@ -70,8 +70,8 @@ public class PrecheckService {
             PrecheckRequestDto req = toReqFromEntity(p);
             AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
 
-            if (isBlank(p.getTitle()))         { p.setTitle(ai.title()); changed = true; }
-            if (isBlank(p.getContent()))       { p.setContent(ai.content()); changed = true; }
+            if (isBlank(p.getTitle())) { p.setTitle(ai.title()); changed = true; }
+            if (isBlank(p.getContent())) { p.setContent(ai.content()); changed = true; }
             if (isBlank(p.getKoreanContent())) { p.setKoreanContent(ai.koreanContent()); changed = true; }
         }
 
@@ -97,12 +97,12 @@ public class PrecheckService {
 
     private PrecheckRequestDto toReqFromEntity(Precheck p) {
         PrecheckRequestDto req = new PrecheckRequestDto();
-        req.setLanguage("");
         req.setName(p.getName());
         req.setAge(p.getAge());
         req.setNationality(p.getNationality());
         req.setGender(p.getGender());
         req.setDescription(p.getDescription() == null ? "" : p.getDescription());
+        req.setVisitPurpose(p.getVisitPurpose() == null ? "" : p.getVisitPurpose()); // 이 줄을 추가합니다.
         return req;
     }
 
