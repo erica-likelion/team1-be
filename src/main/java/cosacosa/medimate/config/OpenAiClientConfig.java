@@ -27,6 +27,9 @@ public class OpenAiClientConfig {
     @Value("${OPENAI_PROJECT_ID:}")
     private String projectId;
 
+    @Value("${UPSTAGE_API_KEY}")
+    private String upstageApiKey;
+
     @Bean
     public WebClient openAiWebClient() {
         if (apiKey == null || apiKey.isBlank()) {
@@ -34,11 +37,11 @@ public class OpenAiClientConfig {
         }
 
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // 연결 타임아웃 5초
-                .responseTimeout(Duration.ofSeconds(30)) // 응답 타임아웃 30초
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .responseTimeout(Duration.ofSeconds(60))
                 .doOnConnected(conn -> {
-                    conn.addHandlerLast(new ReadTimeoutHandler(30, TimeUnit.SECONDS));
-                    conn.addHandlerLast(new WriteTimeoutHandler(30, TimeUnit.SECONDS));
+                    conn.addHandlerLast(new ReadTimeoutHandler(60, TimeUnit.SECONDS));
+                    conn.addHandlerLast(new WriteTimeoutHandler(60, TimeUnit.SECONDS));
                 })
                 .compress(true); // HTTP 응답 압축 허용
 
@@ -63,5 +66,36 @@ public class OpenAiClientConfig {
             builder.defaultHeader("OpenAI-Project", projectId);
         }
         return builder.build();
+    }
+
+    @Bean
+    public WebClient upstageWebClient() {
+        if (upstageApiKey == null || upstageApiKey.isBlank()) {
+            throw new IllegalStateException("환경변수 UPSTAGE_API_KEY가 설정되지 않았습니다.");
+        }
+
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .responseTimeout(Duration.ofSeconds(60))
+                .doOnConnected(conn -> {
+                    conn.addHandlerLast(new ReadTimeoutHandler(60, TimeUnit.SECONDS));
+                    conn.addHandlerLast(new WriteTimeoutHandler(60, TimeUnit.SECONDS));
+                })
+                .compress(true);
+
+        return WebClient.builder()
+                .baseUrl("https://api.upstage.ai")
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + upstageApiKey)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(
+                        ExchangeStrategies.builder()
+                                .codecs(c -> c.defaultCodecs()
+                                        .maxInMemorySize(10 * 1024 * 1024)
+                                )
+                                .build()
+                )
+                .build();
     }
 }

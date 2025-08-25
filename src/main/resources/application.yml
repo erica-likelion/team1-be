@@ -8,6 +8,11 @@ spring:
   application:
     name: medimate
 
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${SPRING_DATASOURCE_URL}
@@ -26,3 +31,13 @@ spring:
       hibernate:
         jdbc.time_zone: Asia/Seoul
         format_sql: true
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: medimate-storage
+    region:
+      static: ap-northeast-2 # 버킷을 생성한 리전을 입력하세요
