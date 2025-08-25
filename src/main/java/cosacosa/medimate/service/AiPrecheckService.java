@@ -39,7 +39,7 @@ public class AiPrecheckService {
                     "age", "나이",
                     "gender", "성별",
                     "nationality", "국적",
-                    "visitPurpose", "증상 상담",
+                    "visitPurpose", "방문 목적",
                     "symptoms", "증상"
             ),
             "zh", Map.of(
@@ -47,7 +47,7 @@ public class AiPrecheckService {
                     "age", "年龄",
                     "gender", "性别",
                     "nationality", "国籍",
-                    "visitPurpose", "症状咨询",
+                    "visitPurpose", "就诊目的",
                     "symptoms", "症状"
             )
     );
