@@ -58,7 +58,6 @@ public class AiPrecheckService {
         JsonNode json = callOpenAi(systemPrompt, userPrompt);
 
         String language = getText(json, "detectedLanguage");
-        // AI가 번역한 `nationality`와 `translatedNationality`를 모두 가져옵니다.
         String nationality = getText(json, "nationality");
         String translatedNationality = getText(json, "translatedNationality");
         String translatedVisitPurpose = getText(json, "translatedVisitPurpose");
@@ -67,7 +66,6 @@ public class AiPrecheckService {
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
 
-        // `content`의 국적을 AI가 번역한 원본 언어(중국어)로 변경합니다.
         String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel(language, "name"), getNameByLanguage(req.getName(), language),
                 getLabel(language, "age"), req.getAge(),
@@ -76,7 +74,6 @@ public class AiPrecheckService {
                 getLabel(language, "visitPurpose"), translatedVisitPurpose,
                 getLabel(language, "symptoms"), symptomParagraph);
 
-        // `koreanContent`의 국적은 AI가 번역한 한국어 버전으로 유지합니다.
         String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel("ko", "name"), getKoreanName(req.getName()),
                 getLabel("ko", "age"), req.getAge(),
