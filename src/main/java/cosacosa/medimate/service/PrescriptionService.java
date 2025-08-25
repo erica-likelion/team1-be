@@ -86,9 +86,11 @@ public class PrescriptionService {
             List<String> parsedContents = parseAiResponse(fullContent, dto.getLanguage());
 
             Prescription prescription = new Prescription(
-                    parsedContents.get(2),
+                    parsedContents.get(4),
                     parsedContents.get(0),
-                    parsedContents.get(1)
+                    parsedContents.get(1),
+                    parsedContents.get(2),
+                    parsedContents.get(3)
             );
             prescriptionRepository.save(prescription);
 
@@ -97,6 +99,8 @@ public class PrescriptionService {
                     prescription.getTitle(),
                     prescription.getContent(),
                     prescription.getKoreanContent(),
+                    prescription.getContentMd(),
+                    prescription.getKoreanContentMd(),
                     prescription.getCreatedAt()
             );
 
@@ -123,6 +127,8 @@ public class PrescriptionService {
                 prescription.getTitle(),
                 prescription.getContent(),
                 prescription.getKoreanContent(),
+                prescription.getContentMd(),
+                prescription.getKoreanContentMd(),
                 prescription.getCreatedAt()
         );
     }
@@ -184,6 +190,7 @@ public class PrescriptionService {
         // ... (기존과 동일, 변경 없음)
         return String.format("""
         당신은 한국의 약학 정보에 능통한 전문 약사입니다. 처방전을 입력한 환자에게 처방받은 의약품들에 대해 쉼고 자세하게 설명해주는 글을 생성해야합니다.
+설명글은 총 4가지 버전이 있어야합니다. 1. 한국어로 작성된 약품 설명글(단순 문자열) 2. %2$s 언어로 작성된 약품 설명글(단순 문자열) 3. 한국어로 작성된 약품 설명글(단순 문자열) 4. %2$s 언어로 작성된 약품 설명글(단순 문자열)
 그리고 추가로 이 처방전을 한 줄로 요약한 제목을 생성해야 합니다. 환자가 약들을 처방받은 이유를 한 줄로 요약하는 제목을 %2$s 언어로 마지막에 생성해주세요.
 반드시 아래 출력 틀 그대로 생성해야 합니다. 
 
@@ -206,48 +213,72 @@ public class PrescriptionService {
 
 출력 예시:
 <<<BEGIN_KO>>>
-[의약품명 1]
-효능: 🎯
+<의약품명: 의약품 이름1>
+[🎯효능] 
 	...
 	
-사용법: 🕒
+[🕒사용법]
 	...
 	
-주의사항: ⚠️
+[⚠️주의사항]
 	...
 	
-약물 상호작용: 🔄
+[🔄약물 상호작용]
 	...
 	
-부작용: 🚨
+[🚨부작용]
 	...
 	
-보관법: 📦
+[📦보관법]
 	...
 	
-[의약품명 2]
-효능: 🎯
+<의약품명: 의약품 이름2>
+[🎯효능] 
 	...
 	
-사용법: 🕒
+[🕒사용법]
 	...
 	
-주의사항: ⚠️
+[⚠️주의사항]
 	...
 	
-약물 상호작용: 🔄
+[🔄약물 상호작용]
 	...
 	
-부작용: 🚨
+[🚨부작용]
 	...
 	
-보관법: 📦
+[📦보관법]
 	...
 <<<END_KO>>>
 
 <<<BEGIN_%2$s>>>
 ...(한국어 출력과 같은 형식)
 <<<END_%2$s>>>
+<<<BEGIN_KO_MD>>>
+# 💊 의약품명: 의약품 이름1
+
+## 🎯 효능
+...
+
+## 🕒 사용법
+...
+
+## ⚠️ 주의사항
+...
+
+## 🔄 약물 상호작용
+...
+
+## 🚨 부작용
+...
+
+## 📦 보관법
+...
+<<<END_KO_MD>>>
+<<<BEGIN_%2$s_MD>>>
+...(한국어 MD 출력과 같은 형식)
+<<<END_%2$s_MD>>>
 <<<BEGIN_TITLE>>>
 ...(처방전을 요약하는 제목을 %2$s로 생성해주세요)
 <<<END_TITLE>>>
@@ -268,24 +299,28 @@ public class PrescriptionService {
 
         String content = "";
         String koreanContent  = "";
+        String koreanContentMd = "";
+        String contentMd = "";
         String title = "";
 
         // DOTALL 모드로 줄바꿈 포함 매칭
         Pattern pattern = Pattern.compile(
-                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>.*?<<<BEGIN_TITLE>>>\\s*(.*?)\\s*<<<END_TITLE>>>", language.toUpperCase(), language.toUpperCase())
+                String.format("(?s)<<<BEGIN_KO>>>\\s*(.*?)\\s*<<<END_KO>>>.*?<<<BEGIN_%s>>>\\s*(.*?)\\s*<<<END_%s>>>.*?<<<BEGIN_KO_MD>>>\\s*(.*?)\\s*<<<END_KO_MD>>>.*?<<<BEGIN_%s_MD>>>\\s*(.*?)\\s*<<<END_%s_MD>>>.*?<<<BEGIN_TITLE>>>\\s*(.*?)\\s*<<<END_TITLE>>>", language.toUpperCase(), language.toUpperCase())
         );
         Matcher matcher = pattern.matcher(text.trim());
 
         if (matcher.find()) {
             koreanContent = matcher.group(1).trim();
             content  = matcher.group(2).trim();
-            title = matcher.group(3).trim();
+            koreanContentMd = matcher.group(3).trim();
+            contentMd = matcher.group(4).trim();
+            title = matcher.group(5).trim();
         } else {
             // 센티넬이 없으면 전체를 koreanContent로 반환
             koreanContent = text.trim();
         }
 
-        return List.of(content, koreanContent, title);
+        return List.of(content, koreanContent, contentMd, koreanContentMd, title);
     }
 
     private String callOpenAiApi(Map<String, Object> requestBody) {
