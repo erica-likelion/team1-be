@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Sort;
 
 @Service
 @Transactional
@@ -108,7 +109,7 @@ public class PrescriptionService {
 
 
     public List<PrescriptionListItemResponse> readPrescriptionList() {
-        return prescriptionRepository.findAll()
+        return prescriptionRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
                 .stream().map(prescription -> new PrescriptionListItemResponse(
                         prescription.getId(),
                         prescription.getTitle(),
