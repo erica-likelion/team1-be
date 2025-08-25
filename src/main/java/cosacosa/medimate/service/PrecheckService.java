@@ -64,18 +64,17 @@ public class PrecheckService {
 
     @Transactional
     public PrecheckResponseDto toDetailResponse(Precheck p) {
-        boolean changed = false;
+        // '번역하기' 버튼을 누를 때마다 항상 AI를 호출하여 모든 내용을 새로 생성하고 업데이트합니다.
+        PrecheckRequestDto req = toReqFromEntity(p);
+        AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
 
-        if (isBlank(p.getTitle()) || isBlank(p.getContent()) || isBlank(p.getKoreanContent())) {
-            PrecheckRequestDto req = toReqFromEntity(p);
-            AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
+        // AI로부터 받은 최신 정보로 엔티티를 업데이트합니다.
+        p.setTitle(ai.title());
+        p.setContent(ai.content());
+        p.setKoreanContent(ai.koreanContent());
+        p.setVisitPurpose(ai.visitPurpose());
 
-            if (isBlank(p.getTitle())) { p.setTitle(ai.title()); changed = true; }
-            if (isBlank(p.getContent())) { p.setContent(ai.content()); changed = true; }
-            if (isBlank(p.getKoreanContent())) { p.setKoreanContent(ai.koreanContent()); changed = true; }
-        }
-
-        if (changed) repository.saveAndFlush(p);
+        repository.saveAndFlush(p);
         return toDto(p);
     }
 
@@ -104,9 +103,5 @@ public class PrecheckService {
         req.setDescription(p.getDescription() == null ? "" : p.getDescription());
         req.setVisitPurpose(p.getVisitPurpose() == null ? "" : p.getVisitPurpose());
         return req;
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 }
