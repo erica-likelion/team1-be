@@ -32,7 +32,6 @@ public class PrecheckService {
                 .title(ai.title())
                 .content(ai.content())
                 .koreanContent(ai.koreanContent())
-                .visitPurpose(ai.visitPurpose())
                 .name(req.getName())
                 .age(req.getAge())
                 .nationality(req.getNationality())
@@ -64,7 +63,7 @@ public class PrecheckService {
 
     @Transactional
     public PrecheckResponseDto toDetailResponse(Precheck p) {
-        // '번역하기' 버튼을 누를 때마다 항상 AI를 호출하여 모든 내용을 새로 생성하고 업데이트합니다.
+        // '번역하기' 버튼을 누를 때마다 항상 AI를 호출하여 모든 내용을 새로 생성합니다.
         PrecheckRequestDto req = toReqFromEntity(p);
         AiPrecheckService.AiResultFull ai = aiService.generateTitleAndContent(req);
 
@@ -72,7 +71,6 @@ public class PrecheckService {
         p.setTitle(ai.title());
         p.setContent(ai.content());
         p.setKoreanContent(ai.koreanContent());
-        p.setVisitPurpose(ai.visitPurpose());
 
         repository.saveAndFlush(p);
         return toDto(p);
@@ -90,7 +88,6 @@ public class PrecheckService {
                 .nationality(p.getNationality())
                 .gender(p.getGender())
                 .description(p.getDescription())
-                .visitPurpose(p.getVisitPurpose())
                 .build();
     }
 
@@ -101,7 +98,6 @@ public class PrecheckService {
         req.setNationality(p.getNationality());
         req.setGender(p.getGender());
         req.setDescription(p.getDescription() == null ? "" : p.getDescription());
-        req.setVisitPurpose(p.getVisitPurpose() == null ? "" : p.getVisitPurpose());
         return req;
     }
 }

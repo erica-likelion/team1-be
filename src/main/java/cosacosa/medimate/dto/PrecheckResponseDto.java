@@ -1,7 +1,6 @@
 package cosacosa.medimate.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.AllArgsConstructor;
@@ -26,7 +25,4 @@ public class PrecheckResponseDto {
     private String nationality;
     private String gender;
     private String description;
-
-    @JsonProperty("visitPurpose")
-    private String visitPurpose;       // '증상 상담' 고정
 }

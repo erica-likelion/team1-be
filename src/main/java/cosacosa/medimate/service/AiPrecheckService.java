@@ -31,7 +31,6 @@ public class AiPrecheckService {
                     "age", "Age",
                     "gender", "Gender",
                     "nationality", "Nationality",
-                    "visitPurpose", "Symptom consultation",
                     "symptoms", "Symptoms"
             ),
             "ko", Map.of(
@@ -39,7 +38,6 @@ public class AiPrecheckService {
                     "age", "나이",
                     "gender", "성별",
                     "nationality", "국적",
-                    "visitPurpose", "증상 목적",
                     "symptoms", "증상"
             ),
             "zh", Map.of(
@@ -47,7 +45,6 @@ public class AiPrecheckService {
                     "age", "年龄",
                     "gender", "性别",
                     "nationality", "国籍",
-                    "visitPurpose", "就诊目的",
                     "symptoms", "症状"
             )
     );
@@ -60,29 +57,26 @@ public class AiPrecheckService {
         String language = getText(json, "detectedLanguage");
         String nationality = getText(json, "nationality");
         String translatedNationality = getText(json, "translatedNationality");
-        String translatedVisitPurpose = getText(json, "translatedVisitPurpose");
 
         String title = getText(json, "title");
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
 
-        String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
+        String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel(language, "name"), getNameByLanguage(req.getName(), language),
                 getLabel(language, "age"), req.getAge(),
                 getLabel(language, "gender"), getGenderByLanguage(req.getGender(), language),
                 getLabel(language, "nationality"), nationality,
-                getLabel(language, "visitPurpose"), translatedVisitPurpose,
                 getLabel(language, "symptoms"), symptomParagraph);
 
-        String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
+        String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel("ko", "name"), getKoreanName(req.getName()),
                 getLabel("ko", "age"), req.getAge(),
                 getLabel("ko", "gender"), getKoreanGender(req.getGender()),
                 getLabel("ko", "nationality"), translatedNationality,
-                getLabel("ko", "visitPurpose"), getLabel("ko", "visitPurpose"),
                 getLabel("ko", "symptoms"), koreanSymptomParagraph);
 
-        return new AiResultFull(title, translatedVisitPurpose, content, koreanContent);
+        return new AiResultFull(title, content, koreanContent);
     }
 
     private String buildSystemPrompt() {
@@ -96,7 +90,6 @@ public class AiPrecheckService {
           - "detectedLanguage": the language of the patient's symptoms in a lowercase ISO 639-1 code (e.g., 'en', 'ko', 'zh').
           - "nationality": the patient's nationality, translated into the patient's original language.
           - "translatedNationality": the patient's nationality, translated into Korean.
-          - "translatedVisitPurpose": the visitPurpose, translated into the patient's original language.
         ======================
         SYMPTOMS PARAGRAPH COMPOSITION:
         Write a single, well-structured paragraph in this order when information exists:
@@ -168,15 +161,13 @@ public class AiPrecheckService {
               "name": "%s",
               "age": %s,
               "gender": "%s",
-              "description": "%s",
-              "visitPurpose": "%s"
+              "description": "%s"
             }
             """,
                 safe(req.getName()),
                 req.getAge(),
                 safe(req.getGender()),
-                escapeQuotes(safe(req.getDescription())),
-                safe(req.getVisitPurpose())
+                escapeQuotes(safe(req.getDescription()))
         );
     }
 
@@ -235,7 +226,7 @@ public class AiPrecheckService {
     private static String safe(String s) { return s == null ? "" : s; }
     private static String escapeQuotes(String s) { return s.replace("\"", "\\\""); }
 
-    public record AiResultFull(String title, String visitPurpose, String content, String koreanContent) {}
+    public record AiResultFull(String title, String content, String koreanContent) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ChatResponse { public List<Choice> choices; }
