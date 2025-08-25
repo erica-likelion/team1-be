@@ -14,7 +14,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -54,44 +53,41 @@ public class AiPrecheckService {
     );
 
     public AiResultFull generateTitleAndContent(PrecheckRequestDto req) {
-        String language = req.getLanguage();
-        if (language == null || language.isBlank()) {
-            language = detectLanguage(req.getDescription());
-        }
-
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(req);
         JsonNode json = callOpenAi(systemPrompt, userPrompt);
 
+        String language = getText(json, "detectedLanguage");
+        String translatedNationality = getText(json, "translatedNationality");
+        // AI가 번역한 visitPurpose를 가져오도록 수정
+        String translatedVisitPurpose = getText(json, "translatedVisitPurpose");
+
         String title = getText(json, "title");
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
-        // AI가 번역한 국적을 받아옵니다.
-        String translatedNationality = getText(json, "translatedNationality");
 
+        // content의 항목명과 visitPurpose의 내용을 사용자의 언어(중국어)로 변경
         String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel(language, "name"), getNameByLanguage(req.getName(), language),
                 getLabel(language, "age"), req.getAge(),
                 getLabel(language, "gender"), getGenderByLanguage(req.getGender(), language),
-                getLabel(language, "nationality"), req.getNationality(), // 원문 국적 그대로 사용
-                getLabel(language, "visitPurpose"), getLabel(language, "visitPurpose"),
+                getLabel(language, "nationality"), translatedNationality,
+                getLabel(language, "visitPurpose"), translatedVisitPurpose,
                 getLabel(language, "symptoms"), symptomParagraph);
 
-        // AI가 번역한 국적을 사용합니다.
+        // koreanContent는 기존 로직을 유지하여 한국어로 생성
         String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
                 getLabel("ko", "name"), getKoreanName(req.getName()),
                 getLabel("ko", "age"), req.getAge(),
                 getLabel("ko", "gender"), getKoreanGender(req.getGender()),
-                getLabel("ko", "nationality"), translatedNationality, // AI가 번역한 국적 사용
+                getLabel("ko", "nationality"), translatedNationality,
                 getLabel("ko", "visitPurpose"), getLabel("ko", "visitPurpose"),
                 getLabel("ko", "symptoms"), koreanSymptomParagraph);
 
-        String visitPurpose = getLabel(language, "visitPurpose");
-
-        return new AiResultFull(title, visitPurpose, content, koreanContent);
+        // 반환할 visitPurpose도 번역된 값으로 설정
+        return new AiResultFull(title, translatedVisitPurpose, content, koreanContent);
     }
 
-    // AI에 국적 번역을 요청하는 시스템 프롬프트
     private String buildSystemPrompt() {
         return """
         You are a clinical intake assistant for pre-visit triage.
@@ -100,8 +96,9 @@ public class AiPrecheckService {
           - "title": one-line summary of the patient's symptoms/context (string)
           - "symptomParagraph": patient's symptoms in a single, coherent paragraph, in the patient's original language.
           - "koreanSymptomParagraph": patient's symptoms in a single, coherent paragraph, in Korean.
-          - "translatedNationality": patient's nationality translated into Korean.
-
+          - "detectedLanguage": the language of the patient's symptoms in a lowercase ISO 639-1 code (e.g., 'en', 'ko', 'zh').
+          - "translatedNationality": a common nationality for the detected language, translated into Korean. Do not guess the patient's nationality if no country is explicitly mentioned in the description; instead, use a default value like "미국" if the language is English or "한국" if the language is Korean.
+          - "translatedVisitPurpose": the visitPurpose, translated into the patient's original language.
         ======================
         SYMPTOMS PARAGRAPH COMPOSITION:
         Write a single, well-structured paragraph in this order when information exists:
@@ -132,19 +129,6 @@ public class AiPrecheckService {
           - No markdown/explanations outside JSON.
           - No extra keys beyond the specified.
         """;
-    }
-
-    private String detectLanguage(String text) {
-        if (text == null || text.isBlank()) {
-            return "en";
-        }
-        if (text.matches(".*[가-힣].*")) {
-            return "ko";
-        }
-        if (text.matches(".*[\\u4e00-\\u9fff].*")) {
-            return "zh";
-        }
-        return "en";
     }
 
     private String getLabel(String lang, String key) {
@@ -183,20 +167,18 @@ public class AiPrecheckService {
     private String buildUserPrompt(PrecheckRequestDto req) {
         return String.format("""
             {
-              "language": "%s",
               "name": "%s",
               "age": %s,
-              "nationality": "%s",
               "gender": "%s",
-              "description": "%s"
+              "description": "%s",
+              "visitPurpose": "%s"
             }
             """,
-                safe(req.getLanguage()),
                 safe(req.getName()),
                 req.getAge(),
-                safe(req.getNationality()),
                 safe(req.getGender()),
-                escapeQuotes(safe(req.getDescription()))
+                escapeQuotes(safe(req.getDescription())),
+                safe(req.getVisitPurpose())
         );
     }
 
