@@ -21,32 +21,68 @@ public class AiPrecheckService {
     private final WebClient openAiWebClient;
     private final PrecheckAiProperties props;
     private final ObjectMapper om = new ObjectMapper();
-    private static final String DEFAULT_VISIT_PURPOSE_EN = "Symptom consultation";
-    private static final String DEFAULT_VISIT_PURPOSE_KR = "증상 상담";
-    private static final String DEFAULT_GENDER_M_KR = "남성";
-    private static final String DEFAULT_GENDER_F_KR = "여성";
+
+    private static final String GENDER_M_KR = "남성";
+    private static final String GENDER_F_KR = "여성";
+
+    private static final Map<String, Map<String, String>> LABELS = Map.of(
+            "en", Map.of(
+                    "name", "Name",
+                    "age", "Age",
+                    "gender", "Gender",
+                    "nationality", "Nationality",
+                    "visitPurpose", "Symptom consultation",
+                    "symptoms", "Symptoms"
+            ),
+            "ko", Map.of(
+                    "name", "이름",
+                    "age", "나이",
+                    "gender", "성별",
+                    "nationality", "국적",
+                    "visitPurpose", "증상 상담",
+                    "symptoms", "증상"
+            ),
+            "zh", Map.of(
+                    "name", "姓名",
+                    "age", "年龄",
+                    "gender", "性别",
+                    "nationality", "国籍",
+                    "visitPurpose", "症状咨询",
+                    "symptoms", "症状"
+            )
+    );
 
     public AiResultFull generateTitleAndContent(PrecheckRequestDto req) {
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(req);
         JsonNode json = callOpenAi(systemPrompt, userPrompt);
 
+        String language = getText(json, "detectedLanguage");
+        String nationality = getText(json, "nationality");
+        String translatedNationality = getText(json, "translatedNationality");
+        String translatedVisitPurpose = getText(json, "translatedVisitPurpose");
+
         String title = getText(json, "title");
         String symptomParagraph = getText(json, "symptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
         String koreanSymptomParagraph = getText(json, "koreanSymptomParagraph").replace("\\n", " ").replace("\n", " ").trim();
 
-        // visitPurpose는 이제 AI가 아닌 코드로 직접 설정
-        String visitPurpose = "english".equals(req.getLanguage()) ? DEFAULT_VISIT_PURPOSE_EN : DEFAULT_VISIT_PURPOSE_KR;
+        String content = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
+                getLabel(language, "name"), getNameByLanguage(req.getName(), language),
+                getLabel(language, "age"), req.getAge(),
+                getLabel(language, "gender"), getGenderByLanguage(req.getGender(), language),
+                getLabel(language, "nationality"), nationality,
+                getLabel(language, "visitPurpose"), translatedVisitPurpose,
+                getLabel(language, "symptoms"), symptomParagraph);
 
-        // --- content 필드 조합 ---
-        String content = String.format("Name: %s\nAge: %s\nGender: %s\nNationality: %s\nVisit Purpose: %s\nSymptoms: %s",
-                req.getName(), req.getAge(), req.getGender(), req.getNationality(), DEFAULT_VISIT_PURPOSE_EN, symptomParagraph);
+        String koreanContent = String.format("%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s\n%s: %s",
+                getLabel("ko", "name"), getKoreanName(req.getName()),
+                getLabel("ko", "age"), req.getAge(),
+                getLabel("ko", "gender"), getKoreanGender(req.getGender()),
+                getLabel("ko", "nationality"), translatedNationality,
+                getLabel("ko", "visitPurpose"), getLabel("ko", "visitPurpose"),
+                getLabel("ko", "symptoms"), koreanSymptomParagraph);
 
-        // --- koreanContent 필드 조합 ---
-        String koreanContent = String.format("이름: %s\n나이: %s세\n성별: %s\n국적: %s\n방문 목적: %s\n증상: %s",
-                req.getName(), req.getAge(), getKoreanGender(req.getGender()), getKoreanNationality(req.getNationality()), DEFAULT_VISIT_PURPOSE_KR, koreanSymptomParagraph);
-
-        return new AiResultFull(title, visitPurpose, content, koreanContent);
+        return new AiResultFull(title, translatedVisitPurpose, content, koreanContent);
     }
 
     private String buildSystemPrompt() {
@@ -57,7 +93,10 @@ public class AiPrecheckService {
           - "title": one-line summary of the patient's symptoms/context (string)
           - "symptomParagraph": patient's symptoms in a single, coherent paragraph, in the patient's original language.
           - "koreanSymptomParagraph": patient's symptoms in a single, coherent paragraph, in Korean.
-
+          - "detectedLanguage": the language of the patient's symptoms in a lowercase ISO 639-1 code (e.g., 'en', 'ko', 'zh').
+          - "nationality": the patient's nationality, translated into the patient's original language.
+          - "translatedNationality": the patient's nationality, translated into Korean.
+          - "translatedVisitPurpose": the visitPurpose, translated into the patient's original language.
         ======================
         SYMPTOMS PARAGRAPH COMPOSITION:
         Write a single, well-structured paragraph in this order when information exists:
@@ -90,23 +129,54 @@ public class AiPrecheckService {
         """;
     }
 
+    private String getLabel(String lang, String key) {
+        return LABELS.getOrDefault(lang, LABELS.get("en")).get(key);
+    }
+
+    private String getNameByLanguage(String name, String lang) {
+        if ("ko".equals(lang)) {
+            return getKoreanName(name);
+        }
+        return name;
+    }
+
+    private String getGenderByLanguage(String gender, String lang) {
+        if ("ko".equals(lang)) {
+            return getKoreanGender(gender);
+        } else if ("zh".equals(lang)) {
+            if ("M".equalsIgnoreCase(gender)) return "男性";
+            if ("F".equalsIgnoreCase(gender)) return "女性";
+        }
+        return gender;
+    }
+
+    private String getKoreanName(String name) {
+        return name;
+    }
+    private static String getKoreanGender(String gender) {
+        if ("M".equalsIgnoreCase(gender)) {
+            return GENDER_M_KR;
+        } else if ("F".equalsIgnoreCase(gender)) {
+            return GENDER_F_KR;
+        }
+        return gender;
+    }
+
     private String buildUserPrompt(PrecheckRequestDto req) {
         return String.format("""
             {
-              "language": "%s",
               "name": "%s",
               "age": %s,
-              "nationality": "%s",
               "gender": "%s",
-              "description": "%s"
+              "description": "%s",
+              "visitPurpose": "%s"
             }
             """,
-                safe(req.getLanguage()),
                 safe(req.getName()),
                 req.getAge(),
-                safe(req.getNationality()),
                 safe(req.getGender()),
-                escapeQuotes(safe(req.getDescription()))
+                escapeQuotes(safe(req.getDescription())),
+                safe(req.getVisitPurpose())
         );
     }
 
@@ -164,32 +234,6 @@ public class AiPrecheckService {
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
     private static String safe(String s) { return s == null ? "" : s; }
     private static String escapeQuotes(String s) { return s.replace("\"", "\\\""); }
-
-    // 성별을 한국어로 변환하는 헬퍼 메서드 추가
-    private static String getKoreanGender(String gender) {
-        if ("M".equalsIgnoreCase(gender)) {
-            return DEFAULT_GENDER_M_KR;
-        } else if ("F".equalsIgnoreCase(gender)) {
-            return DEFAULT_GENDER_F_KR;
-        }
-        return gender;
-    }
-
-    // 국적을 한국어로 변환하는 헬퍼 메서드 추가
-    private static String getKoreanNationality(String nationality) {
-        return switch (nationality.toLowerCase()) {
-            case "usa" -> "미국";
-            case "korea" -> "한국";
-            case "uk" -> "영국";
-            case "australia" -> "호주";
-            case "canada" -> "캐나다";
-            case "newzealand" -> "뉴질랜드";
-            case "china" -> "중국";
-            case "taiwan" -> "대만";
-            case "hongkong" -> "홍콩";
-            default -> nationality;
-        };
-    }
 
     public record AiResultFull(String title, String visitPurpose, String content, String koreanContent) {}
 
