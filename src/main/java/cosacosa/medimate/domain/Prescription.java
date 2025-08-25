@@ -23,6 +23,12 @@ public class Prescription {
     @Column(columnDefinition = "TEXT")
     private String koreanContent = ""; // AI가 생성한 처방전 설명 글 (한국어)
 
+    @Column(columnDefinition = "TEXT")
+    private String contentMd = "";
+
+    @Column(columnDefinition = "TEXT")
+    private String koreanContentMd = "";
+
     private LocalDate createdAt;
 
     private String images = "";
@@ -36,9 +42,11 @@ public class Prescription {
         this.createdAt = LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 
-    public Prescription(String title, String content, String koreanContent) {
+    public Prescription(String title, String content, String koreanContent, String contentMd, String koreanContentMd) {
         this.title = title;
         this.content = content;
         this.koreanContent = koreanContent;
+        this.contentMd = contentMd;
+        this.koreanContentMd = koreanContentMd;
     }
 }
